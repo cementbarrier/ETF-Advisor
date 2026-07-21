@@ -1,0 +1,36 @@
+{
+  "llm_provider": "deepseek",
+  "llm_model": "deepseek-chat",
+  "llm_api_key": "",
+  "risk_profile": "standard",
+  "risk_params": {
+    "conservative": {
+      "rsi_oversold": 30,
+      "rsi_overbought": 70,
+      "take_profit_pct": 3.0,
+      "stop_loss_pct": 2.0,
+      "ma_short": 20,
+      "ma_long": 60
+    },
+    "standard": {
+      "rsi_oversold": 25,
+      "rsi_overbought": 75,
+      "take_profit_pct": 5.0,
+      "stop_loss_pct": 3.0,
+      "ma_short": 10,
+      "ma_long": 30
+    },
+    "aggressive": {
+      "rsi_oversold": 20,
+      "rsi_overbought": 80,
+      "take_profit_pct": 8.0,
+      "stop_loss_pct": 5.0,
+      "ma_short": 5,
+      "ma_long": 20
+    }
+  },
+  "signal_consensus_required": true,
+  "default_etf": "510050",
+  "default_period": "short",
+  "max_bars": 200
+}
