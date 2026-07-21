@@ -1,37 +1,54 @@
 """
 持仓获取：优先 easytrader 自动读取，降级手动输入
 """
-from typing import Optional
 from backend.config_manager import get_setting
 
 
-def get_positions_from_ths() -> list[dict]:
+def get_positions_from_ths() -> dict:
     """
     通过 easytrader 从同花顺客户端读取持仓。
-    返回: [{"code": "510050", "name": "上证50ETF", "cost": 3.05, "qty": 10000}, ...]
-    失败返回空列表。
+    返回: {"success": True, "data": [...]} 或 {"success": False, "error": "原因"}
     """
+    # 1. 检查 easytrader 是否安装
     try:
         import easytrader
     except ImportError:
-        return []
+        return {"success": False, "data": [], "error": "easytrader 未安装，请执行 pip install easytrader"}
 
     ths_path = get_setting("ths_xiadan_path", r"C:\同花顺软件\xiadan.exe")
 
+    # 2. 检查下单程序路径是否存在
+    import os
+    if not os.path.exists(ths_path):
+        return {
+            "success": False,
+            "data": [],
+            "error": f"找不到同花顺下单程序，请确认路径: {ths_path}\n可在 config/settings.json 中设置 ths_xiadan_path",
+        }
+
+    # 3. 连接同花顺
     try:
         user = easytrader.use("ths")
         user.connect(ths_path)
-    except Exception:
-        return []
+    except Exception as e:
+        msg = str(e).split("\n")[0][:120]
+        return {
+            "success": False,
+            "data": [],
+            "error": f"连接同花顺失败: {msg}\n请确认: ①同花顺已登录运行 ②窗口未最小化 ③xiadan.exe 已启动",
+        }
 
+    # 4. 读取持仓
     try:
         raw = user.position
-    except Exception:
-        return []
+    except Exception as e:
+        msg = str(e).split("\n")[0][:120]
+        return {"success": False, "data": [], "error": f"读取持仓失败: {msg}"}
 
     if raw is None or (hasattr(raw, "empty") and raw.empty):
-        return []
+        return {"success": True, "data": [], "error": ""}
 
+    # 5. 解析持仓数据
     positions = []
     try:
         import pandas as pd
@@ -40,10 +57,6 @@ def get_positions_from_ths() -> list[dict]:
                 code = str(row.get("证券代码", "")).strip()
                 if not code:
                     continue
-                # ETF 通常以 5/1/5 开头
-                if not (code.startswith("5") or code.startswith("1") or code.startswith("5")):
-                    # 非 ETF 也保留，交由 LLM 判断
-                    pass
                 positions.append({
                     "code": code,
                     "name": str(row.get("证券名称", "")).strip(),
@@ -56,10 +69,10 @@ def get_positions_from_ths() -> list[dict]:
             for item in raw:
                 if isinstance(item, dict):
                     positions.append(item)
-    except Exception:
-        return []
+    except Exception as e:
+        return {"success": False, "data": [], "error": f"解析持仓数据失败: {e}"}
 
-    return positions
+    return {"success": True, "data": positions, "error": ""}
 
 
 def format_positions_for_prompt(positions: list[dict]) -> str:

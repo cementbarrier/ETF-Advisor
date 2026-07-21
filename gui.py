@@ -36,29 +36,78 @@ def _save_api_key(*_):
 
 
 def _read_positions_from_ths():
-    """从同花顺读取持仓并填充到输入框"""
+    """弹出进度窗口，后台读取同花顺持仓"""
     btn_pos.config(state="disabled", text="读取中...")
-    status.config(text="正在连接同花顺...")
+
+    # ── 进度弹窗 ──
+    popup = tk.Toplevel(root)
+    popup.title("读取持仓")
+    popup.geometry("320x120")
+    popup.resizable(False, False)
+    popup.transient(root)
+    popup.grab_set()
+
+    # 居中
+    popup.update_idletasks()
+    rx, ry = root.winfo_x(), root.winfo_y()
+    rw, rh = root.winfo_width(), root.winfo_height()
+    pw, ph = 320, 120
+    popup.geometry(f"+{rx + (rw - pw) // 2}+{ry + (rh - ph) // 2}")
+
+    frame = ttk.Frame(popup, padding=15)
+    frame.pack(fill="both", expand=True)
+
+    ttk.Label(frame, text="正在连接同花顺，请稍候...").pack(pady=(0, 10))
+
+    bar = ttk.Progressbar(frame, mode="indeterminate", length=260)
+    bar.pack()
+    bar.start(15)
+
+    detail_var = tk.StringVar(value="初始化连接...")
+    ttk.Label(frame, textvariable=detail_var, foreground="gray").pack(pady=(8, 0))
 
     def _do():
-        pos = get_positions_from_ths()
-        root.after(0, lambda: _fill_positions(pos))
+        # 阶段指示
+        steps = [
+            ("加载 easytrader...", 0.5),
+            ("连接同花顺客户端...", 2.0),
+            ("读取持仓数据...", 1.0),
+            ("解析数据...", 0.5),
+        ]
+        for msg, _delay in steps:
+            root.after(0, lambda m=msg: detail_var.set(m))
+
+        result = get_positions_from_ths()
+        root.after(0, lambda: _on_done(result, popup))
 
     threading.Thread(target=_do, daemon=True).start()
 
 
+def _on_done(result: dict, popup: tk.Toplevel):
+    """读取完成，关闭弹窗并处理结果"""
+    popup.grab_release()
+    popup.destroy()
+    btn_pos.config(state="normal", text="从同花顺读取")
+
+    if not result.get("success"):
+        messagebox.showerror("读取失败", result.get("error", "未知错误"))
+        status.config(text="读取持仓失败")
+        return
+
+    data = result.get("data", [])
+    if not data:
+        messagebox.showinfo("提示", "未读取到任何持仓数据。\n请确认同花顺账户中确实持有股票/基金。")
+        status.config(text="未读取到持仓，请手动输入")
+        return
+
+    _fill_positions(data)
+
+
 def _fill_positions(positions: list):
     """将持仓数据填入 GUI 输入框"""
-    # 清空
     for row_vars in pos_rows:
         for var in row_vars:
             var.set("")
-    pos_count_var.set("")
-
-    if not positions:
-        status.config(text="未读取到持仓，请手动输入")
-        btn_pos.config(state="normal", text="从同花顺读取")
-        return
 
     for i, p in enumerate(positions[:4]):
         if i < len(pos_rows):
@@ -66,7 +115,6 @@ def _fill_positions(positions: list):
             pos_rows[i][1].set(str(p.get("cost", "")))
             pos_rows[i][2].set(str(int(p.get("qty", 0))))
 
-    btn_pos.config(state="normal", text="从同花顺读取")
     status.config(text=f"已读取 {len(positions)} 条持仓")
 
 
@@ -107,7 +155,11 @@ def _run_analysis():
             positions = _get_manual_positions()
             if not positions:
                 _log("[持仓] 尝试从同花顺自动读取...")
-                positions = get_positions_from_ths()
+                result = get_positions_from_ths()
+                if result.get("success"):
+                    positions = result.get("data", [])
+                else:
+                    _log(f"[持仓] 读取失败: {result.get('error', '')}")
             if positions:
                 _log(f"[持仓] 共 {len(positions)} 条: {', '.join(p['code'] for p in positions)}")
             else:
