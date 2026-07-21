@@ -1,5 +1,6 @@
 """
 ETF 交易决策系统 - tkinter GUI
+加持仓管理：自动读取同花顺 / 手动输入
 """
 import sys
 import os
@@ -10,12 +11,13 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 import tkinter as tk
-from tkinter import ttk, scrolledtext
+from tkinter import ttk, scrolledtext, messagebox
 
 from backend.config_manager import get_setting, set_setting, get_risk_params
 from backend.data_fetcher import fetch_etf_daily
 from backend.factor_engine import run_factor_pipeline
 from backend.llm_decision import decide
+from backend.position_fetcher import get_positions_from_ths, format_positions_for_prompt
 
 
 def _log(msg: str):
@@ -25,7 +27,6 @@ def _log(msg: str):
 
 
 def _save_api_key(*_):
-    """失焦时自动保存 API Key"""
     key = api_var.get().strip()
     if key:
         set_setting("llm_api_key", key)
@@ -34,18 +35,84 @@ def _save_api_key(*_):
         status.config(text="请填写 API Key")
 
 
+def _read_positions_from_ths():
+    """从同花顺读取持仓并填充到输入框"""
+    btn_pos.config(state="disabled", text="读取中...")
+    status.config(text="正在连接同花顺...")
+
+    def _do():
+        pos = get_positions_from_ths()
+        root.after(0, lambda: _fill_positions(pos))
+
+    threading.Thread(target=_do, daemon=True).start()
+
+
+def _fill_positions(positions: list):
+    """将持仓数据填入 GUI 输入框"""
+    # 清空
+    for row_vars in pos_rows:
+        for var in row_vars:
+            var.set("")
+    pos_count_var.set("")
+
+    if not positions:
+        status.config(text="未读取到持仓，请手动输入")
+        btn_pos.config(state="normal", text="从同花顺读取")
+        return
+
+    for i, p in enumerate(positions[:4]):
+        if i < len(pos_rows):
+            pos_rows[i][0].set(p.get("code", ""))
+            pos_rows[i][1].set(str(p.get("cost", "")))
+            pos_rows[i][2].set(str(int(p.get("qty", 0))))
+
+    btn_pos.config(state="normal", text="从同花顺读取")
+    status.config(text=f"已读取 {len(positions)} 条持仓")
+
+
+def _get_manual_positions() -> list[dict]:
+    """从 GUI 输入框获取手动输入持仓"""
+    positions = []
+    for row_vars in pos_rows:
+        code = row_vars[0].get().strip()
+        if not code:
+            continue
+        try:
+            cost = float(row_vars[1].get().strip() or 0)
+            qty = int(float(row_vars[2].get().strip() or 0))
+        except ValueError:
+            continue
+        if qty <= 0:
+            continue
+        positions.append({"code": code, "cost": cost, "qty": qty, "name": ""})
+    return positions
+
+
 def _run_analysis():
     btn.config(state="disabled", text="分析中...")
 
     symbol = etf_var.get().strip()
     period = period_var.get()
     risk = risk_var.get()
+    use_positions = pos_var.get() == "1"
 
-    # 确保最新 API Key 已保存
     _save_api_key()
 
     try:
         _log(f"=== {symbol} {period} {risk} ===")
+
+        # 持仓
+        positions = []
+        if use_positions:
+            positions = _get_manual_positions()
+            if not positions:
+                _log("[持仓] 尝试从同花顺自动读取...")
+                positions = get_positions_from_ths()
+            if positions:
+                _log(f"[持仓] 共 {len(positions)} 条: {', '.join(p['code'] for p in positions)}")
+            else:
+                _log("[持仓] 无持仓数据，将仅基于行情分析")
+
         _log("[1/3] 获取行情...")
 
         max_bars = get_setting("max_bars", 200)
@@ -63,7 +130,10 @@ def _run_analysis():
         _log(f"  信号: {', '.join(factor['signals']) or '无'}")
 
         _log("[3/3] LLM 决策...")
-        result = decide(symbol, factor, period=period, risk_profile=risk)
+
+        # 格式化持仓为 prompt 文本
+        pos_text = format_positions_for_prompt(positions) if positions else ""
+        result = decide(symbol, factor, period=period, risk_profile=risk, positions_text=pos_text)
 
         if "error" in result:
             _log(f"错误: {result['error']}")
@@ -77,6 +147,8 @@ def _run_analysis():
         _log(f"  ◆ 当前价: {factor['price']}")
         _log(f"  ◆ 支撑: {result.get('support_price')}  压力: {result.get('resistance_price')}")
         _log(f"  ◆ 止损: {result.get('stop_loss_price')}  止盈: {result.get('take_profit_price')}")
+        if result.get("position_advice"):
+            _log(f"  ◆ 持仓建议: {result['position_advice']}")
         _log("─" * 40)
 
     except Exception as e:
@@ -89,10 +161,17 @@ def on_run():
     threading.Thread(target=_run_analysis, daemon=True).start()
 
 
+def _clear_positions():
+    for row_vars in pos_rows:
+        for var in row_vars:
+            var.set("")
+    status.config(text="持仓已清空")
+
+
 # ── 界面 ──
 root = tk.Tk()
 root.title("ETF 交易决策")
-root.geometry("700x580")
+root.geometry("700x750")
 root.resizable(True, True)
 
 top = ttk.Frame(root, padding=10)
@@ -125,9 +204,49 @@ risk_cb.grid(row=1, column=5, sticky="w", pady=(8, 0))
 btn = ttk.Button(top, text="开始分析", command=on_run)
 btn.grid(row=1, column=6, padx=(15, 0), sticky="w", pady=(8, 0))
 
+# ── 持仓区 ──
+pos_frame = ttk.LabelFrame(root, text="持仓管理", padding=8)
+pos_frame.pack(fill="x", padx=10, pady=(5, 0))
+
+# 开关 + 按钮
+pos_bar = ttk.Frame(pos_frame)
+pos_bar.pack(fill="x")
+
+pos_var = tk.StringVar(value="1")
+pos_cb = ttk.Checkbutton(pos_bar, text="纳入决策", variable=pos_var, onvalue="1", offvalue="0")
+pos_cb.pack(side="left")
+
+btn_pos = ttk.Button(pos_bar, text="从同花顺读取", command=_read_positions_from_ths)
+btn_pos.pack(side="left", padx=(10, 0))
+
+btn_clear = ttk.Button(pos_bar, text="清空", command=_clear_positions, width=5)
+btn_clear.pack(side="left", padx=(5, 0))
+
+ttk.Label(pos_bar, text="（或手动输入下方表格）", foreground="gray").pack(side="left", padx=(10, 0))
+
+# 持仓表格头
+col_frame = ttk.Frame(pos_frame)
+col_frame.pack(fill="x", pady=(8, 0))
+ttk.Label(col_frame, text="ETF代码", width=12).grid(row=0, column=0)
+ttk.Label(col_frame, text="成本价", width=12).grid(row=0, column=1)
+ttk.Label(col_frame, text="持有数量(份)", width=16).grid(row=0, column=2)
+
+# 4 行持仓输入
+pos_rows = []
+for i in range(4):
+    row_frame = ttk.Frame(pos_frame)
+    row_frame.pack(fill="x", pady=(2, 0))
+    code_var = tk.StringVar()
+    cost_var = tk.StringVar()
+    qty_var = tk.StringVar()
+    ttk.Entry(row_frame, textvariable=code_var, width=12).grid(row=0, column=0, padx=(0, 4))
+    ttk.Entry(row_frame, textvariable=cost_var, width=12).grid(row=0, column=1, padx=(0, 4))
+    ttk.Entry(row_frame, textvariable=qty_var, width=16).grid(row=0, column=2)
+    pos_rows.append((code_var, cost_var, qty_var))
+
 # 输出区
 output = scrolledtext.ScrolledText(root, font=("Consolas", 10), wrap="word", state="normal")
-output.pack(fill="both", expand=True, padx=10, pady=(0, 10))
+output.pack(fill="both", expand=True, padx=10, pady=(8, 10))
 _log.widget = output
 
 # 状态栏
