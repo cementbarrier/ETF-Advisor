@@ -7,7 +7,6 @@ import threading
 import json
 from pathlib import Path
 
-# 确保项目根在 path
 sys.path.insert(0, str(Path(__file__).parent))
 
 import tkinter as tk
@@ -20,20 +19,30 @@ from backend.llm_decision import decide
 
 
 def _log(msg: str):
-    """向输出区追加一行日志"""
     if hasattr(_log, "widget") and _log.widget:
         _log.widget.insert(tk.END, msg + "\n")
         _log.widget.see(tk.END)
 
 
+def _save_api_key(*_):
+    """失焦时自动保存 API Key"""
+    key = api_var.get().strip()
+    if key:
+        set_setting("llm_api_key", key)
+        status.config(text="API Key 已保存")
+    else:
+        status.config(text="请填写 API Key")
+
+
 def _run_analysis():
-    """后台线程执行分析"""
-    # 禁用按钮
     btn.config(state="disabled", text="分析中...")
 
     symbol = etf_var.get().strip()
     period = period_var.get()
     risk = risk_var.get()
+
+    # 确保最新 API Key 已保存
+    _save_api_key()
 
     try:
         _log(f"=== {symbol} {period} {risk} ===")
@@ -60,10 +69,7 @@ def _run_analysis():
             _log(f"错误: {result['error']}")
             return
 
-        # 输出结果
         action = result.get("action", "hold").upper()
-        tag = "buy" if action == "BUY" else ("sell" if action == "SELL" else "hold")
-
         _log("")
         _log(f"  ◆ 决策: {action}")
         _log(f"  ◆ 趋势: {result.get('trend', 'N/A')}")
@@ -83,41 +89,50 @@ def on_run():
     threading.Thread(target=_run_analysis, daemon=True).start()
 
 
-# ── 构建界面 ──
+# ── 界面 ──
 root = tk.Tk()
 root.title("ETF 交易决策")
-root.geometry("650x550")
+root.geometry("700x580")
 root.resizable(True, True)
 
-# 顶部框架：参数区
 top = ttk.Frame(root, padding=10)
 top.pack(fill="x")
 
-ttk.Label(top, text="ETF代码:").grid(row=0, column=0, sticky="w", padx=(0, 5))
+# Row 0: API Key
+ttk.Label(top, text="API Key:").grid(row=0, column=0, sticky="w", padx=(0, 5))
+api_var = tk.StringVar(value=get_setting("llm_api_key", ""))
+api_entry = ttk.Entry(top, textvariable=api_var, width=55, show="*")
+api_entry.grid(row=0, column=1, columnspan=6, sticky="ew")
+api_entry.bind("<FocusOut>", _save_api_key)
+api_entry.bind("<Return>", _save_api_key)
+
+# Row 1: 参数
+ttk.Label(top, text="ETF代码:").grid(row=1, column=0, sticky="w", padx=(0, 5), pady=(8, 0))
 etf_var = tk.StringVar(value=get_setting("default_etf", "510050"))
 etf_entry = ttk.Entry(top, textvariable=etf_var, width=10)
-etf_entry.grid(row=0, column=1, sticky="w")
+etf_entry.grid(row=1, column=1, sticky="w", pady=(8, 0))
 
-ttk.Label(top, text="周期:").grid(row=0, column=2, sticky="w", padx=(15, 5))
+ttk.Label(top, text="周期:").grid(row=1, column=2, sticky="w", padx=(15, 5), pady=(8, 0))
 period_var = tk.StringVar(value=get_setting("default_period", "short"))
 period_cb = ttk.Combobox(top, textvariable=period_var, values=["short", "long"], state="readonly", width=8)
-period_cb.grid(row=0, column=3, sticky="w")
+period_cb.grid(row=1, column=3, sticky="w", pady=(8, 0))
 
-ttk.Label(top, text="档位:").grid(row=0, column=4, sticky="w", padx=(15, 5))
+ttk.Label(top, text="档位:").grid(row=1, column=4, sticky="w", padx=(15, 5), pady=(8, 0))
 risk_var = tk.StringVar(value=get_setting("risk_profile", "standard"))
 risk_cb = ttk.Combobox(top, textvariable=risk_var, values=["conservative", "standard", "aggressive"], state="readonly", width=10)
-risk_cb.grid(row=0, column=5, sticky="w")
+risk_cb.grid(row=1, column=5, sticky="w", pady=(8, 0))
 
 btn = ttk.Button(top, text="开始分析", command=on_run)
-btn.grid(row=0, column=6, padx=(15, 0), sticky="w")
+btn.grid(row=1, column=6, padx=(15, 0), sticky="w", pady=(8, 0))
 
 # 输出区
 output = scrolledtext.ScrolledText(root, font=("Consolas", 10), wrap="word", state="normal")
 output.pack(fill="both", expand=True, padx=10, pady=(0, 10))
 _log.widget = output
 
-# 底部状态栏
-status = ttk.Label(root, text="请在 config/settings.json 中填写 llm_api_key 后使用", relief="sunken", anchor="w", padding=(5, 2))
+# 状态栏
+status_text = "API Key 已就绪" if get_setting("llm_api_key", "") else "请填写 API Key"
+status = ttk.Label(root, text=status_text, relief="sunken", anchor="w", padding=(5, 2))
 status.pack(fill="x", side="bottom")
 
 if __name__ == "__main__":
