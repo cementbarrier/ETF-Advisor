@@ -40,6 +40,64 @@ def _load_sentiment() -> str:
         return ""
 
 
+def _save_result(symbol: str, result: dict, factor: dict):
+    """将 LLM 决策结果保存为 txt 文件"""
+    save_dir = get_setting("output_dir", "E:/etf-trader/output")
+    if not save_dir:
+        return
+    try:
+        from datetime import datetime
+        out_dir = Path(save_dir)
+        out_dir.mkdir(parents=True, exist_ok=True)
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"ETF_{symbol}_{ts}.txt"
+        filepath = out_dir / filename
+
+        action_map = {"buy": "买入", "sell": "卖出", "hold": "观望"}
+        trend_map = {"bullish": "看涨", "bearish": "看跌", "neutral": "震荡"}
+
+        lines = []
+        lines.append(f"ETF {symbol} LLM 决策报告")
+        lines.append(f"生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        lines.append("=" * 40)
+        lines.append("")
+        lines.append("┌─ 决策概览")
+        lines.append(f"│  方向: {action_map.get(result.get('action', 'hold'), result.get('action', 'N/A'))}  趋势: {trend_map.get(result.get('trend', 'neutral'), result.get('trend', 'N/A'))}  置信度: {result.get('confidence', 'N/A')}  当前价: {factor.get('price', 'N/A')}")
+
+        if result.get("entry_zone") or result.get("exit_zone") or result.get("position_ratio"):
+            lines.append("├─ 操作建议")
+            if result.get("entry_zone"):
+                lines.append(f"│  买入区间: {result['entry_zone']}")
+            if result.get("exit_zone"):
+                lines.append(f"│  卖出区间: {result['exit_zone']}")
+            if result.get("position_ratio"):
+                lines.append(f"│  仓位建议: {result['position_ratio']}")
+
+        lines.append("├─ 风控参数")
+        lines.append(f"│  止损: {result.get('stop_loss_price', 'N/A')}  止盈: {result.get('take_profit_price', 'N/A')}")
+
+        if result.get("reasoning"):
+            lines.append("├─ 决策依据")
+            import re
+            raw = result["reasoning"].replace("\r", "")
+            rlines = [l.strip() for l in raw.split("\n") if l.strip()]
+            if len(rlines) == 1:
+                parts = re.split(r'(?<!\d)(?=\d+\.\s|-\s)', rlines[0])
+                rlines = [p.strip() for p in parts if p.strip()]
+            for line in rlines:
+                lines.append(f"│  {line}")
+
+        if result.get("position_advice"):
+            lines.append("└─ " + result["position_advice"])
+        else:
+            lines.append("└─" + "─" * 3)
+
+        filepath.write_text("\n".join(lines), encoding="utf-8")
+        _log(f"  已保存: {filepath}")
+    except Exception as e:
+        _log(f"  保存失败: {e}")
+
+
 def _log(msg: str):
     if hasattr(_log, "widget") and _log.widget:
         _log.widget.insert(tk.END, msg + "\n")
@@ -311,6 +369,9 @@ def _run_analysis():
 
         _log("─" * 40)
 
+        # 保存结果
+        _save_result(symbol, result, factor)
+
     except Exception as e:
         _log(f"异常: {e}")
     finally:
@@ -391,6 +452,30 @@ def _browse_sentiment_file():
 
 sent_btn = ttk.Button(sent_frame, text="浏览...", command=_browse_sentiment_file, width=6)
 sent_btn.pack(side="left", padx=(5, 0))
+
+# Row 3: 保存目录
+ttk.Label(top, text="保存目录:").grid(row=3, column=0, sticky="w", padx=(0, 5), pady=(6, 0))
+save_var = tk.StringVar(value=get_setting("output_dir", "E:/etf-trader/output"))
+save_frame = ttk.Frame(top)
+save_frame.grid(row=3, column=1, columnspan=6, sticky="ew", pady=(6, 0))
+save_entry = ttk.Entry(save_frame, textvariable=save_var)
+save_entry.pack(side="left", fill="x", expand=True)
+save_entry.bind("<FocusOut>", lambda e: set_setting("output_dir", save_var.get().strip()))
+save_entry.bind("<Return>", lambda e: set_setting("output_dir", save_var.get().strip()))
+
+
+def _browse_save_dir():
+    d = filedialog.askdirectory(
+        initialdir=save_var.get() or "E:/",
+        title="选择 LLM 决策保存目录",
+    )
+    if d:
+        save_var.set(d)
+        set_setting("output_dir", d)
+
+
+save_btn = ttk.Button(save_frame, text="浏览...", command=_browse_save_dir, width=6)
+save_btn.pack(side="left", padx=(5, 0))
 
 # ── 持仓区 ──
 pos_frame = ttk.LabelFrame(root, text="持仓管理", padding=8)
