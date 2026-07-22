@@ -19,6 +19,18 @@ from backend.factor_engine import run_factor_pipeline
 from backend.llm_decision import decide
 from backend.position_fetcher import get_account_snapshot, format_positions_for_prompt, format_balance_for_prompt
 
+try:
+    from PIL import Image, ImageDraw
+    HAS_PIL = True
+except ImportError:
+    HAS_PIL = False
+
+try:
+    import pystray
+    HAS_TRAY = True
+except ImportError:
+    HAS_TRAY = False
+
 
 def _load_sentiment() -> str:
     """加载板块舆情总结文件，用于 LLM 决策的外部情绪参考
@@ -440,11 +452,95 @@ def _clear_positions():
     status.config(text="持仓已清空")
 
 
+# ── 托盘功能 ──
+_tray_icon = None
+_should_exit = False
+_handling_minimize = False
+
+
+def _create_tray_image():
+    """生成托盘图标（64x64 蓝绿ETF风格）"""
+    if not HAS_PIL:
+        return None
+    img = Image.new('RGBA', (64, 64), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(img)
+    draw.rectangle([8, 8, 56, 56], fill=(0, 100, 148), outline=(0, 70, 110), width=2)
+    draw.line([(20, 40), (28, 28), (24, 32), (36, 22), (44, 30), (48, 20)], fill=(255, 255, 255), width=3)
+    return img
+
+
+def _restore_window(icon, item=None):
+    """从托盘恢复主窗口（不销毁托盘图标，图标始终驻留）"""
+    global _handling_minimize
+    _handling_minimize = False
+    root.deiconify()
+    root.state('normal')
+    root.lift()
+    root.focus_force()
+
+
+def _quit_app(icon, item=None):
+    """彻底退出程序"""
+    global _tray_icon, _should_exit
+    _should_exit = True
+    if _tray_icon:
+        _tray_icon.stop()
+        _tray_icon = None
+    root.destroy()
+
+
+def _hide_to_tray():
+    """窗口隐藏到托盘（托盘图标始终存在）"""
+    if not HAS_TRAY:
+        return
+    root.withdraw()
+
+
+def _init_tray_icon():
+    """程序启动时即显示托盘图标，不隐藏窗口"""
+    global _tray_icon
+    if not HAS_TRAY:
+        return
+    if _tray_icon is not None:
+        return
+    menu = pystray.Menu(
+        pystray.MenuItem('显示', _restore_window, default=True),
+        pystray.MenuItem('退出', _quit_app),
+    )
+    _tray_icon = pystray.Icon('etf_trader', _create_tray_image(), 'ETF 交易决策', menu)
+    threading.Thread(target=_tray_icon.run, daemon=True).start()
+
+
+def _on_window_close():
+    """点击关闭按钮 → 隐藏到托盘（不退出）"""
+    global _should_exit
+    if _should_exit:
+        _quit_app(None)
+        return
+    _hide_to_tray()
+
+
+def _on_unmap(event):
+    """捕获最小化事件"""
+    global _handling_minimize
+    if _handling_minimize or _should_exit:
+        return
+    if event.widget is root and root.state() == 'iconic':
+        _handling_minimize = True
+        _hide_to_tray()
+
+
 # ── 界面 ──
 root = tk.Tk()
 root.title("ETF 交易决策")
 root.geometry("700x750")
 root.resizable(True, True)
+
+# 托盘：点击关闭/最小化时隐藏到托盘
+if HAS_TRAY:
+    root.protocol('WM_DELETE_WINDOW', _on_window_close)
+    root.bind('<Unmap>', _on_unmap, add='+')
+    _init_tray_icon()
 
 bal_var = tk.StringVar()
 total_var = tk.StringVar()
