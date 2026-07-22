@@ -5,7 +5,9 @@ a = Analysis(
     ['gui.py'],
     pathex=[],
     binaries=[],
-    datas=[],
+    datas=[
+        ('D:/Program Files/Tencent/Marvis/MarvisAgent/1.0.1100.349/runtime/python311/Lib/site-packages/akshare/file_fold', 'akshare/file_fold'),
+    ],
     hiddenimports=['easytrader', 'pywinauto', 'win32api', 'PIL', 'baostock', 'akshare'],
     hookspath=[],
     hooksconfig={},
