@@ -1,8 +1,8 @@
-# SignalBoard 项目上下文（2026-07-22）
+# ETF-Advisor 项目上下文（2026-07-22）
 
 ## 项目概述
 
-SignalBoard 信号看板——策略推演与交易信号生成，基于多因子技术分析 + LLM 决策，综合同花顺持仓与板块舆情，输出买入/卖出/观望参考信号。**无自动下单能力，纯策略推演与信号输出。** 定位：策略推演/信号生成端。配套项目 BiliDigest（B站视频字幕提取与AI摘要）。
+ETF-Advisor——配合同花顺软件使用的交易参考工具，基于多因子技术分析 + LLM 决策，输出买入/卖出/观望参考建议。配套项目 BiliDigest（B站视频字幕提取与AI摘要）。
 
 **路径**：`E:\etf-trader`  
 **入口**：`gui.py`，PyInstaller 打包为 `E:\etf-trader\dist\gui.exe`  

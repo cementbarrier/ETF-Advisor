@@ -507,7 +507,7 @@ def _init_tray_icon():
         pystray.MenuItem('显示', _restore_window, default=True),
         pystray.MenuItem('退出', _quit_app),
     )
-    _tray_icon = pystray.Icon('signalboard', _create_tray_image(), 'SignalBoard', menu)
+    _tray_icon = pystray.Icon('etf-advisor', _create_tray_image(), 'ETF-Advisor', menu)
     threading.Thread(target=_tray_icon.run, daemon=True).start()
 
 
@@ -532,7 +532,7 @@ def _on_unmap(event):
 
 # ── 界面 ──
 root = tk.Tk()
-root.title("SignalBoard")
+root.title("ETF-Advisor")
 root.geometry("700x750")
 root.resizable(True, True)
 
