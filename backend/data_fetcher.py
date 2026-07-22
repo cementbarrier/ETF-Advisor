@@ -41,7 +41,13 @@ def _fetch_realtime_spot(symbol: str) -> Optional[dict]:
             'close': float(r['最新价']),
             'volume': int(r['成交量']),
         }
-    except Exception:
+    except Exception as e:
+        try:
+            with open("E:\\etf-trader\\debug_akshare.log", "a", encoding="utf-8") as f:
+                import traceback
+                f.write(f"[{datetime.now()}] akshare failed: {e}\n{traceback.format_exc()}\n")
+        except Exception:
+            pass
         return None
 
 
