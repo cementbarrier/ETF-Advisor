@@ -1,6 +1,8 @@
 """
 行情数据获取：baostock ETF 历史 K 线 + akshare 实时行情补充
 """
+import os
+os.environ.setdefault("TQDM_DISABLE", "1")
 from typing import Optional
 from datetime import datetime, timedelta
 import pandas as pd

@@ -1,0 +1,29 @@
+[2026-07-22 11:07:54.640039] akshare failed: [Errno 2] No such file or directory: 'C:\\Users\\Administrator\\AppData\\Local\\Temp\\_MEI167242\\akshare\\file_fold\\calendar.json'
+Traceback (most recent call last):
+  File "backend\data_fetcher.py", line 29, in _fetch_realtime_spot
+  File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1147, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
+  File "pyimod02_importers.py", line 457, in exec_module
+  File "akshare\__init__.py", line 5862, in <module>
+  File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1147, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
+  File "pyimod02_importers.py", line 457, in exec_module
+  File "akshare\futures\futures_basis.py", line 28, in <module>
+  File "akshare\futures\cons.py", line 585, in get_calendar
+FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\Administrator\\AppData\\Local\\Temp\\_MEI167242\\akshare\\file_fold\\calendar.json'
+
+[2026-07-22 11:12:36.755765] akshare failed: 'NoneType' object has no attribute 'write'
+Traceback (most recent call last):
+  File "backend\data_fetcher.py", line 30, in _fetch_realtime_spot
+  File "akshare\fund\fund_etf_em.py", line 72, in fund_etf_spot_em
+  File "akshare\utils\func.py", line 46, in fetch_paginated_data
+  File "tqdm\std.py", line 1103, in __init__
+  File "tqdm\std.py", line 1353, in refresh
+  File "tqdm\std.py", line 1501, in display
+  File "tqdm\std.py", line 457, in print_status
+  File "tqdm\std.py", line 450, in fp_write
+  File "tqdm\utils.py", line 123, in __getattr__
+AttributeError: 'NoneType' object has no attribute 'write'
+

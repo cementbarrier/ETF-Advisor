@@ -1,0 +1,122 @@
+18 DEPRECATION: Running PyInstaller as admin is not necessary nor sensible. Run PyInstaller from a non-administrator terminal. PyInstaller 7.0 will block this.
+70 INFO: PyInstaller: 6.21.0, contrib hooks: 2026.6
+71 INFO: Python: 3.11.8
+77 INFO: Platform: Windows-10-10.0.19045-SP0
+78 INFO: Python environment: D:\Program Files\Tencent\Marvis\MarvisAgent\1.0.1100.349\runtime\python311
+80 INFO: Removing temporary files and cleaning cache in C:\Users\Administrator\AppData\Local\pyinstaller
+81 INFO: Module search paths (PYTHONPATH):
+['E:\\etf-trader',
+ 'D:\\Program '
+ 'Files\\Tencent\\Marvis\\MarvisAgent\\1.0.1100.349\\runtime\\python311\\python311.zip',
+ 'D:\\Program '
+ 'Files\\Tencent\\Marvis\\MarvisAgent\\1.0.1100.349\\runtime\\python311\\DLLs',
+ 'D:\\Program '
+ 'Files\\Tencent\\Marvis\\MarvisAgent\\1.0.1100.349\\runtime\\python311\\Lib',
+ 'D:\\Program '
+ 'Files\\Tencent\\Marvis\\MarvisAgent\\1.0.1100.349\\runtime\\python311',
+ 'D:\\Program '
+ 'Files\\Tencent\\Marvis\\MarvisAgent\\1.0.1100.349\\runtime\\python311\\Lib\\site-packages',
+ 'D:\\Program '
+ 'Files\\Tencent\\Marvis\\MarvisAgent\\1.0.1100.349\\runtime\\python311\\Lib\\site-packages\\win32',
+ 'D:\\Program '
+ 'Files\\Tencent\\Marvis\\MarvisAgent\\1.0.1100.349\\runtime\\python311\\Lib\\site-packages\\win32\\lib',
+ 'D:\\Program '
+ 'Files\\Tencent\\Marvis\\MarvisAgent\\1.0.1100.349\\runtime\\python311\\Lib\\site-packages\\pythonwin',
+ 'E:\\etf-trader']
+246 INFO: Appending 'datas' from .spec
+247 INFO: checking Analysis
+247 INFO: Building Analysis because Analysis-00.toc is non existent
+247 INFO: Looking for Python shared library...
+247 INFO: Using Python shared library: D:\Program Files\Tencent\Marvis\MarvisAgent\1.0.1100.349\runtime\python311\python311.dll
+247 INFO: Running Analysis Analysis-00.toc
+247 INFO: Target bytecode optimization level: 0
+247 INFO: Initializing module dependency graph...
+248 INFO: Initializing module graph hook caches...
+257 INFO: Analyzing modules for base_library.zip ...
+719 INFO: Processing standard module hook 'hook-heapq.py' from 'D:\\Program Files\\Tencent\\Marvis\\MarvisAgent\\1.0.1100.349\\runtime\\python311\\Lib\\site-packages\\PyInstaller\\hooks'
+884 INFO: Processing standard module hook 'hook-encodings.py' from 'D:\\Program Files\\Tencent\\Marvis\\MarvisAgent\\1.0.1100.349\\runtime\\python311\\Lib\\site-packages\\PyInstaller\\hooks'
+1252 INFO: Processing standard module hook 'hook-math.py' from 'D:\\Program Files\\Tencent\\Marvis\\MarvisAgent\\1.0.1100.349\\runtime\\python311\\Lib\\site-packages\\PyInstaller\\hooks'
+1709 INFO: Processing standard module hook 'hook-pickle.py' from 'D:\\Program Files\\Tencent\\Marvis\\MarvisAgent\\1.0.1100.349\\runtime\\python311\\Lib\\site-packages\\PyInstaller\\hooks'
+2423 INFO: Caching module dependency graph...
+2447 INFO: Analyzing E:\etf-trader\gui.py
+2473 INFO: Processing pre-find-module-path hook 'hook-tkinter.py' from 'D:\\Program Files\\Tencent\\Marvis\\MarvisAgent\\1.0.1100.349\\runtime\\python311\\Lib\\site-packages\\PyInstaller\\hooks\\pre_find_module_path'
+2473 INFO: TclTkInfo: initializing cached Tcl/Tk info...
+2631 INFO: Processing standard module hook 'hook-_tkinter.py' from 'D:\\Program Files\\Tencent\\Marvis\\MarvisAgent\\1.0.1100.349\\runtime\\python311\\Lib\\site-packages\\PyInstaller\\hooks'
+2662 INFO: Processing standard module hook 'hook-pandas.py' from 'D:\\Program Files\\Tencent\\Marvis\\MarvisAgent\\1.0.1100.349\\runtime\\python311\\Lib\\site-packages\\PyInstaller\\hooks'
+3358 INFO: Processing standard module hook 'hook-platform.py' from 'D:\\Program Files\\Tencent\\Marvis\\MarvisAgent\\1.0.1100.349\\runtime\\python311\\Lib\\site-packages\\PyInstaller\\hooks'
+3372 INFO: Processing standard module hook 'hook-sysconfig.py' from 'D:\\Program Files\\Tencent\\Marvis\\MarvisAgent\\1.0.1100.349\\runtime\\python311\\Lib\\site-packages\\PyInstaller\\hooks'
+3386 INFO: Processing standard module hook 'hook-numpy.py' from 'D:\\Program Files\\Tencent\\Marvis\\MarvisAgent\\1.0.1100.349\\runtime\\python311\\Lib\\site-packages\\PyInstaller\\hooks'
+3570 INFO: Processing pre-safe-import-module hook 'hook-typing_extensions.py' from 'D:\\Program Files\\Tencent\\Marvis\\MarvisAgent\\1.0.1100.349\\runtime\\python311\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+3571 INFO: SetuptoolsInfo: initializing cached setuptools info...
+3901 INFO: Processing standard module hook 'hook-multiprocessing.util.py' from 'D:\\Program Files\\Tencent\\Marvis\\MarvisAgent\\1.0.1100.349\\runtime\\python311\\Lib\\site-packages\\PyInstaller\\hooks'
+3986 INFO: Processing standard module hook 'hook-xml.py' from 'D:\\Program Files\\Tencent\\Marvis\\MarvisAgent\\1.0.1100.349\\runtime\\python311\\Lib\\site-packages\\PyInstaller\\hooks'
+4140 INFO: Processing standard module hook 'hook-_ctypes.py' from 'D:\\Program Files\\Tencent\\Marvis\\MarvisAgent\\1.0.1100.349\\runtime\\python311\\Lib\\site-packages\\PyInstaller\\hooks'
+4453 INFO: Processing standard module hook 'hook-difflib.py' from 'D:\\Program Files\\Tencent\\Marvis\\MarvisAgent\\1.0.1100.349\\runtime\\python311\\Lib\\site-packages\\PyInstaller\\hooks'
+4959 INFO: Processing standard module hook 'hook-webbrowser.py' from 'D:\\Program Files\\Tencent\\Marvis\\MarvisAgent\\1.0.1100.349\\runtime\\python311\\Lib\\site-packages\\PyInstaller\\hooks'
+5588 INFO: Processing standard module hook 'hook-charset_normalizer.py' from 'D:\\Program Files\\Tencent\\Marvis\\MarvisAgent\\1.0.1100.349\\runtime\\python311\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+5847 INFO: Processing standard module hook 'hook-zoneinfo.py' from 'D:\\Program Files\\Tencent\\Marvis\\MarvisAgent\\1.0.1100.349\\runtime\\python311\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+6651 INFO: Processing standard module hook 'hook-pandas.io.formats.style.py' from 'D:\\Program Files\\Tencent\\Marvis\\MarvisAgent\\1.0.1100.349\\runtime\\python311\\Lib\\site-packages\\PyInstaller\\hooks'
+8174 INFO: Processing standard module hook 'hook-pandas.plotting.py' from 'D:\\Program Files\\Tencent\\Marvis\\MarvisAgent\\1.0.1100.349\\runtime\\python311\\Lib\\site-packages\\PyInstaller\\hooks'
+8550 INFO: Processing standard module hook 'hook-dateutil.py' from 'D:\\Program Files\\Tencent\\Marvis\\MarvisAgent\\1.0.1100.349\\runtime\\python311\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+8624 INFO: Processing pre-safe-import-module hook 'hook-six.moves.py' from 'D:\\Program Files\\Tencent\\Marvis\\MarvisAgent\\1.0.1100.349\\runtime\\python311\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+9095 INFO: Processing standard module hook 'hook-openpyxl.py' from 'D:\\Program Files\\Tencent\\Marvis\\MarvisAgent\\1.0.1100.349\\runtime\\python311\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+9151 INFO: Processing standard module hook 'hook-lxml.py' from 'D:\\Program Files\\Tencent\\Marvis\\MarvisAgent\\1.0.1100.349\\runtime\\python311\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+9298 INFO: Processing standard module hook 'hook-lxml.etree.py' from 'D:\\Program Files\\Tencent\\Marvis\\MarvisAgent\\1.0.1100.349\\runtime\\python311\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+9383 INFO: Processing standard module hook 'hook-xml.etree.cElementTree.py' from 'D:\\Program Files\\Tencent\\Marvis\\MarvisAgent\\1.0.1100.349\\runtime\\python311\\Lib\\site-packages\\PyInstaller\\hooks'
+9579 INFO: Processing standard module hook 'hook-PIL.py' from 'D:\\Program Files\\Tencent\\Marvis\\MarvisAgent\\1.0.1100.349\\runtime\\python311\\Lib\\site-packages\\PyInstaller\\hooks'
+9711 INFO: Processing standard module hook 'hook-PIL.Image.py' from 'D:\\Program Files\\Tencent\\Marvis\\MarvisAgent\\1.0.1100.349\\runtime\\python311\\Lib\\site-packages\\PyInstaller\\hooks'
+9940 INFO: Processing standard module hook 'hook-PIL.ImageFilter.py' from 'D:\\Program Files\\Tencent\\Marvis\\MarvisAgent\\1.0.1100.349\\runtime\\python311\\Lib\\site-packages\\PyInstaller\\hooks'
+10906 INFO: Processing standard module hook 'hook-sqlite3.py' from 'D:\\Program Files\\Tencent\\Marvis\\MarvisAgent\\1.0.1100.349\\runtime\\python311\\Lib\\site-packages\\PyInstaller\\hooks'
+11050 INFO: Processing standard module hook 'hook-pandas.io.clipboard.py' from 'D:\\Program Files\\Tencent\\Marvis\\MarvisAgent\\1.0.1100.349\\runtime\\python311\\Lib\\site-packages\\PyInstaller\\hooks'
+11113 INFO: Processing standard module hook 'hook-xml.dom.domreg.py' from 'D:\\Program Files\\Tencent\\Marvis\\MarvisAgent\\1.0.1100.349\\runtime\\python311\\Lib\\site-packages\\PyInstaller\\hooks'
+11959 INFO: Processing standard module hook 'hook-urllib3.py' from 'D:\\Program Files\\Tencent\\Marvis\\MarvisAgent\\1.0.1100.349\\runtime\\python311\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+12083 INFO: Processing pre-safe-import-module hook 'hook-backports.py' from 'D:\\Program Files\\Tencent\\Marvis\\MarvisAgent\\1.0.1100.349\\runtime\\python311\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+12348 INFO: Processing standard module hook 'hook-certifi.py' from 'D:\\Program Files\\Tencent\\Marvis\\MarvisAgent\\1.0.1100.349\\runtime\\python311\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+12504 INFO: Processing pre-safe-import-module hook 'hook-importlib_resources.py' from 'D:\\Program Files\\Tencent\\Marvis\\MarvisAgent\\1.0.1100.349\\runtime\\python311\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+14088 INFO: Processing standard module hook 'hook-pythoncom.py' from 'D:\\Program Files\\Tencent\\Marvis\\MarvisAgent\\1.0.1100.349\\runtime\\python311\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+14131 INFO: Processing standard module hook 'hook-pywintypes.py' from 'D:\\Program Files\\Tencent\\Marvis\\MarvisAgent\\1.0.1100.349\\runtime\\python311\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+14246 INFO: Processing standard module hook 'hook-comtypes.client.py' from 'D:\\Program Files\\Tencent\\Marvis\\MarvisAgent\\1.0.1100.349\\runtime\\python311\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+15141 INFO: Processing pre-safe-import-module hook 'hook-win32com.py' from 'D:\\Program Files\\Tencent\\Marvis\\MarvisAgent\\1.0.1100.349\\runtime\\python311\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\pre_safe_import_module'
+15193 INFO: Processing standard module hook 'hook-win32com.py' from 'D:\\Program Files\\Tencent\\Marvis\\MarvisAgent\\1.0.1100.349\\runtime\\python311\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+15508 INFO: Processing module hooks (post-graph stage)...
+15643 INFO: Processing standard module hook 'hook-lxml.isoschematron.py' from 'D:\\Program Files\\Tencent\\Marvis\\MarvisAgent\\1.0.1100.349\\runtime\\python311\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+15679 INFO: Processing standard module hook 'hook-jinja2.py' from 'D:\\Program Files\\Tencent\\Marvis\\MarvisAgent\\1.0.1100.349\\runtime\\python311\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+16102 INFO: Processing standard module hook 'hook-PIL.SpiderImagePlugin.py' from 'D:\\Program Files\\Tencent\\Marvis\\MarvisAgent\\1.0.1100.349\\runtime\\python311\\Lib\\site-packages\\PyInstaller\\hooks'
+16127 INFO: Processing standard module hook 'hook-_tkinter.py' from 'D:\\Program Files\\Tencent\\Marvis\\MarvisAgent\\1.0.1100.349\\runtime\\python311\\Lib\\site-packages\\PyInstaller\\hooks'
+16129 INFO: Processing standard module hook 'hook-lxml.objectify.py' from 'D:\\Program Files\\Tencent\\Marvis\\MarvisAgent\\1.0.1100.349\\runtime\\python311\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+16130 INFO: Processing standard module hook 'hook-tzdata.py' from 'D:\\Program Files\\Tencent\\Marvis\\MarvisAgent\\1.0.1100.349\\runtime\\python311\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+16383 INFO: Performing binary vs. data reclassification (1556 entries)
+16426 INFO: Looking for ctypes DLLs
+16680 INFO: Analyzing run-time hooks ...
+16685 INFO: Including run-time hook 'pyi_rth_inspect.py' from 'D:\\Program Files\\Tencent\\Marvis\\MarvisAgent\\1.0.1100.349\\runtime\\python311\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+16687 INFO: Including run-time hook 'pyi_rth_pkgutil.py' from 'D:\\Program Files\\Tencent\\Marvis\\MarvisAgent\\1.0.1100.349\\runtime\\python311\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+16688 INFO: Including run-time hook 'pyi_rth_multiprocessing.py' from 'D:\\Program Files\\Tencent\\Marvis\\MarvisAgent\\1.0.1100.349\\runtime\\python311\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+16689 INFO: Including run-time hook 'pyi_rth_pywintypes.py' from 'D:\\Program Files\\Tencent\\Marvis\\MarvisAgent\\1.0.1100.349\\runtime\\python311\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\rthooks'
+16690 INFO: Including run-time hook 'pyi_rth_pythoncom.py' from 'D:\\Program Files\\Tencent\\Marvis\\MarvisAgent\\1.0.1100.349\\runtime\\python311\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\rthooks'
+16691 INFO: Including run-time hook 'pyi_rth__tkinter.py' from 'D:\\Program Files\\Tencent\\Marvis\\MarvisAgent\\1.0.1100.349\\runtime\\python311\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+16730 INFO: Creating base_library.zip...
+16741 INFO: Looking for dynamic libraries
+17642 INFO: Extra DLL search directories (AddDllDirectory): ['D:\\Program Files\\Tencent\\Marvis\\MarvisAgent\\1.0.1100.349\\runtime\\python311\\Lib\\site-packages\\pandas.libs', 'D:\\Program Files\\Tencent\\Marvis\\MarvisAgent\\1.0.1100.349\\runtime\\python311\\Lib\\site-packages\\numpy.libs']
+17642 INFO: Extra DLL search directories (PATH): []
+18326 INFO: Warnings written to E:\etf-trader\build\gui\warn-gui.txt
+18451 INFO: Graph cross-reference written to E:\etf-trader\build\gui\xref-gui.html
+18504 INFO: checking PYZ
+18504 INFO: Building PYZ because PYZ-00.toc is non existent
+18504 INFO: Building PYZ (ZlibArchive) E:\etf-trader\build\gui\PYZ-00.pyz
+19491 INFO: Building PYZ (ZlibArchive) E:\etf-trader\build\gui\PYZ-00.pyz completed successfully.
+19529 INFO: checking PKG
+19529 INFO: Building PKG because PKG-00.toc is non existent
+19529 INFO: Building PKG (CArchive) gui.pkg
+27230 INFO: Building PKG (CArchive) gui.pkg completed successfully.
+27253 INFO: Bootloader D:\Program Files\Tencent\Marvis\MarvisAgent\1.0.1100.349\runtime\python311\Lib\site-packages\PyInstaller\bootloader\Windows-64bit-intel\runw.exe
+27254 INFO: checking EXE
+27254 INFO: Building EXE because EXE-00.toc is non existent
+27254 INFO: Building EXE from EXE-00.toc
+27254 INFO: Copying bootloader EXE to E:\etf-trader\dist\gui.exe
+27255 INFO: Copying icon to EXE
+27258 INFO: Copying 0 resources to EXE
+27258 INFO: Embedding manifest in EXE
+27260 INFO: Appending PKG archive to EXE
+27280 INFO: Fixing EXE headers
+27433 INFO: Building EXE from EXE-00.toc completed successfully.
+27455 INFO: Build complete! The results are available in: E:\etf-trader\dist
