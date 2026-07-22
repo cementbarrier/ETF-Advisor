@@ -22,14 +22,16 @@ from backend.position_fetcher import get_account_snapshot, format_positions_for_
 
 def _load_sentiment() -> str:
     """加载最新板块舆情总结，用于 LLM 决策的外部情绪参考"""
-    import glob
     from datetime import date
     today = date.today().isoformat()
-    summary_dir = Path("E:/video2txt")
-    if not summary_dir.exists():
+    summary_dir = get_setting("sentiment_dir", "E:/video2txt")
+    if not summary_dir:
+        return ""
+    p = Path(summary_dir)
+    if not p.exists():
         return ""
     # 优先当天，其次最新
-    candidates = sorted(summary_dir.glob("批次总结_*.txt"), reverse=True)
+    candidates = sorted(p.glob("批次总结_*.txt"), reverse=True)
     if not candidates:
         return ""
     for f in candidates:
@@ -368,6 +370,14 @@ risk_cb.grid(row=1, column=5, sticky="w", pady=(8, 0))
 
 btn = ttk.Button(top, text="开始分析", command=on_run)
 btn.grid(row=1, column=6, padx=(15, 0), sticky="w", pady=(8, 0))
+
+# Row 2: 舆情目录
+ttk.Label(top, text="舆情目录:").grid(row=2, column=0, sticky="w", padx=(0, 5), pady=(6, 0))
+sent_var = tk.StringVar(value=get_setting("sentiment_dir", "E:/video2txt"))
+sent_entry = ttk.Entry(top, textvariable=sent_var, width=55)
+sent_entry.grid(row=2, column=1, columnspan=6, sticky="ew", pady=(6, 0))
+sent_entry.bind("<FocusOut>", lambda e: set_setting("sentiment_dir", sent_var.get().strip()))
+sent_entry.bind("<Return>", lambda e: set_setting("sentiment_dir", sent_var.get().strip()))
 
 # ── 持仓区 ──
 pos_frame = ttk.LabelFrame(root, text="持仓管理", padding=8)
