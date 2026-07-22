@@ -4,6 +4,23 @@ ETF 交易决策系统 - tkinter GUI
 """
 import sys
 import os
+
+# 强制禁用所有代理——必须在任何网络库导入前执行
+os.environ['HTTP_PROXY'] = ''
+os.environ['HTTPS_PROXY'] = ''
+os.environ['NO_PROXY'] = '*'
+os.environ['http_proxy'] = ''
+os.environ['https_proxy'] = ''
+os.environ['no_proxy'] = '*'
+
+# monkey-patch：让 requests 永远不走代理
+import requests
+_original_session_init = requests.Session.__init__
+def _patched_init(self, *args, **kwargs):
+    _original_session_init(self, *args, **kwargs)
+    self.trust_env = False
+requests.Session.__init__ = _patched_init
+
 import threading
 import json
 from pathlib import Path

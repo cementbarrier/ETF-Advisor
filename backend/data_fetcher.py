@@ -2,7 +2,23 @@
 行情数据获取：支持多数据源切换（baostock / akshare），可选 token 认证
 """
 import os
+import sys
 os.environ.setdefault("TQDM_DISABLE", "1")
+
+# 强制禁用代理（akshare 内部新建 session 可能绕开全局 patch）
+os.environ['HTTP_PROXY'] = ''
+os.environ['HTTPS_PROXY'] = ''
+os.environ['NO_PROXY'] = '*'
+os.environ['http_proxy'] = ''
+os.environ['https_proxy'] = ''
+os.environ['no_proxy'] = '*'
+
+# Frozen 环境下指向打包的 SSL 证书
+if getattr(sys, 'frozen', False):
+    import certifi
+    os.environ['SSL_CERT_FILE'] = certifi.where()
+    os.environ['REQUESTS_CA_BUNDLE'] = certifi.where()
+
 from typing import Optional
 from datetime import datetime, timedelta
 import pandas as pd
