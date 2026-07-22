@@ -21,23 +21,74 @@ from backend.position_fetcher import get_account_snapshot, format_positions_for_
 
 
 def _load_sentiment() -> str:
-    """加载板块舆情总结文件，用于 LLM 决策的外部情绪参考"""
+    """加载板块舆情总结文件，用于 LLM 决策的外部情绪参考
+
+    优先级：JSON（stock-tool batch_parser 结构化输出） > TXT（旧格式）
+    JSON 格式：{ videos: [{bvid, opinion}], entry_signals: [{sector, reason}] }
+    """
     file_path = get_setting("sentiment_dir", "E:/video2txt")
     if not file_path:
         return ""
     p = Path(file_path)
-    # 若是目录则回退旧逻辑：glob 最新的批次总结
+
+    # 确定要读取的文件：JSON 优先，TXT 回退
+    json_file = None
+    txt_file = None
+
     if p.is_dir():
-        candidates = sorted(p.glob("批次总结_*.txt"), reverse=True)
-        if not candidates:
+        json_candidates = sorted(p.glob("批次总结_*.json"), reverse=True)
+        if json_candidates:
+            json_file = json_candidates[0]
+        else:
+            txt_candidates = sorted(p.glob("批次总结_*.txt"), reverse=True)
+            if txt_candidates:
+                txt_file = txt_candidates[0]
+    elif p.suffix.lower() == ".json" and p.is_file():
+        json_file = p
+    elif p.is_file():
+        txt_file = p
+
+    # ── JSON 模式：解析结构化字段 ──
+    if json_file:
+        try:
+            data = json.loads(json_file.read_text(encoding="utf-8"))
+        except Exception:
             return ""
-        p = candidates[0]
-    if not p.exists() or not p.is_file():
-        return ""
-    try:
-        return p.read_text(encoding="utf-8").strip()
-    except Exception:
-        return ""
+        videos = data.get("videos", [])
+        entry_signals = data.get("entry_signals", [])
+        video_count = data.get("video_count", len(videos))
+
+        parts = [f"=== 板块舆情分析（基于 {video_count} 个视频，{data.get('date', '')}）===\n"]
+
+        if videos:
+            parts.append("【视频观点速览】")
+            for v in videos:
+                bvid = v.get("bvid", "")
+                opinion = v.get("opinion", "")
+                parts.append(f"  [{bvid}] {opinion}")
+            parts.append("")
+
+        if entry_signals:
+            parts.append("【入场参考信号】")
+            for es in entry_signals:
+                sector = es.get("sector", "")
+                reason = es.get("reason", "")
+                parts.append(f"  {sector}: {reason}")
+
+        if not videos and not entry_signals:
+            # 仅有 raw_text 时直接返回
+            return data.get("raw_text", "").strip()
+
+        return "\n".join(parts).strip()
+
+    # ── TXT 模式：直接读取 ──
+    if txt_file:
+        try:
+            return txt_file.read_text(encoding="utf-8").strip()
+        except Exception:
+            return ""
+
+    return ""
 
 
 def _save_result(symbol: str, result: dict, factor: dict):
@@ -443,7 +494,12 @@ def _browse_sentiment_file():
     f = filedialog.askopenfilename(
         initialdir=str(Path(sent_var.get()).parent) if sent_var.get() else "E:/",
         title="选择舆情总结文件",
-        filetypes=[("文本文件", "*.txt"), ("所有文件", "*.*")],
+        filetypes=[
+            ("批次总结文件", "*.json;*.txt"),
+            ("JSON文件", "*.json"),
+            ("文本文件", "*.txt"),
+            ("所有文件", "*.*"),
+        ],
     )
     if f:
         sent_var.set(f)
