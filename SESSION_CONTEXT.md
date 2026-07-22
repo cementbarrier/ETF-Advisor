@@ -1,12 +1,12 @@
-# ETF Trader - 项目上下文（2026-07-22）
+# SignalBoard 项目上下文（2026-07-22）
 
 ## 项目概述
 
-ETF 交易决策系统，基于 Tkinter GUI，集成同花顺持仓读取、技术指标计算、LLM 决策。
+SignalBoard 信号看板——策略推演与交易信号生成，基于多因子技术分析 + LLM 决策，综合同花顺持仓与板块舆情，输出买入/卖出/观望参考信号。**无自动下单能力，纯策略推演与信号输出。** 定位：策略推演/信号生成端。配套项目 ChartBoard（观测研判端）。
 
 **路径**：`E:\etf-trader`  
 **入口**：`gui.py`，PyInstaller 打包为 `E:\etf-trader\dist\gui.exe`  
-**桌面快捷方式**：`ETF Trader` → `E:\etf-trader\dist\gui.exe`
+**桌面快捷方式**：`SignalBoard` → `E:\etf-trader\dist\gui.exe`
 
 ---
 
@@ -141,3 +141,26 @@ python -m PyInstaller gui.spec --distpath dist --workpath build --clean --noconf
 
 - `E:\stock-tool` — 股票分析工具，产出视频批次总结
 - `E:\video2txt` — 批次总结输出目录
+
+---
+
+## 环境初始化变更（2026-07-22 下午）
+
+### 13. 独立虚拟环境 + 一键初始化
+
+- **独立 venv**：`E:\etf-trader\.venv`，基于 Python 3.11 创建，与 Marvis 运行时解耦
+- **依赖冻结**：`requirements.txt` 已完整覆盖所有依赖（akshare, baostock, easytrader, pywinauto, Pillow, pystray, six, PyInstaller 等），`pip install -r requirements.txt` 即可复现
+- **gui.spec 路径动态化**：akshare `file_fold` 的 `datas` 路径改为 `Tree('site-packages/akshare/file_fold')` 动态导入，不再硬编码 Marvis 运行时绝对路径；任何 Python 3.11 环境中 `pip install akshare` 后均可直接打包
+- **setup.bat**：新增一键环境初始化脚本，流程：检测系统 Python → 项目目录下创建 `.venv` → 激活并安装 `requirements.txt`。从 GitHub clone 后双击即可搭建
+
+### 14. 一键搭建流程
+
+```batch
+git clone https://github.com/cementbarrier/ETF-Trader.git
+cd ETF-Trader
+setup.bat
+```
+
+完成后即可 `python gui.py` 运行或 `python -m PyInstaller gui.spec` 打包。
+
+[memory_id: memory_00_GMpVaHVeIAw4Sb99Gxjs5394]
