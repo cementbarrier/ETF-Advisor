@@ -21,7 +21,38 @@ if getattr(sys, 'frozen', False):
 
 from typing import Optional
 from datetime import datetime, timedelta
+from pathlib import Path
+import threading
 import pandas as pd
+
+# 项目根目录（backend/ 的上一级）；冻结模式下为 EXE 所在目录
+if getattr(sys, 'frozen', False):
+    _PROJECT_ROOT = Path(sys.executable).parent
+else:
+    _PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+# akshare 调用超时（秒）
+_AKSHARE_TIMEOUT = 30
+
+
+def _call_with_timeout(func, timeout: float = _AKSHARE_TIMEOUT):
+    """在独立线程中执行 func()，超时抛 TimeoutError（防止 akshare 无超时卡死）"""
+    result = {}
+
+    def _worker():
+        try:
+            result["value"] = func()
+        except Exception as e:
+            result["error"] = e
+
+    t = threading.Thread(target=_worker, daemon=True)
+    t.start()
+    t.join(timeout)
+    if t.is_alive():
+        raise TimeoutError(f"调用超时（>{timeout}s）")
+    if "error" in result:
+        raise result["error"]
+    return result.get("value")
 
 
 # ── 数据源配置 ──
@@ -192,59 +223,88 @@ def _fetch_akshare_minute(symbol: str, period: str = "60", count: int = 200) -> 
 # ── 统一入口 ──
 
 def fetch_etf_daily(symbol: str, count: int = 200) -> Optional[pd.DataFrame]:
-    """获取 ETF 日 K 线（含今日实时行情），根据配置数据源路由"""
+    """获取 ETF 日 K 线（含今日实时行情），根据配置数据源路由。
+
+    baostock 失败（登录/查询异常）时自动 fallback 到 akshare。
+    """
     source = get_data_source()
 
     if source == "akshare":
         return _fetch_akshare_daily(symbol, count)
-    else:
+
+    # baostock 优先，失败自动切 akshare
+    try:
         df = _fetch_baostock_daily(symbol, count)
-        if df is not None:
-            last_date = df["date"].max()
-            today = datetime.now().strftime("%Y-%m-%d")
-            if last_date.strftime("%Y-%m-%d") != today:
-                spot = _fetch_realtime_spot(symbol)
-                if spot and spot['close'] > 0:
-                    new_row = pd.DataFrame([spot])
-                    new_row["date"] = pd.to_datetime(new_row["date"])
-                    df = pd.concat([df, new_row], ignore_index=True)
-                    df = df.sort_values("date").tail(count).reset_index(drop=True)
-        return df
+    except Exception as e:
+        _write_debug_log(f"baostock 日线获取失败，fallback 到 akshare: {e}")
+        return _fetch_akshare_daily(symbol, count)
+
+    if df is not None:
+        last_date = df["date"].max()
+        today = datetime.now().strftime("%Y-%m-%d")
+        if last_date.strftime("%Y-%m-%d") != today:
+            spot = _fetch_realtime_spot(symbol)
+            if spot and spot['close'] > 0:
+                new_row = pd.DataFrame([spot])
+                new_row["date"] = pd.to_datetime(new_row["date"])
+                df = pd.concat([df, new_row], ignore_index=True)
+                df = df.sort_values("date").tail(count).reset_index(drop=True)
+    else:
+        # baostock 无数据，尝试 akshare 兜底
+        _write_debug_log("baostock 日线返回空，fallback 到 akshare")
+        return _fetch_akshare_daily(symbol, count)
+    return df
 
 
 def fetch_etf_minute(symbol: str, period: str = "60", count: int = 200) -> Optional[pd.DataFrame]:
-    """获取 ETF 分钟 K 线，根据配置数据源路由"""
+    """获取 ETF 分钟 K 线，根据配置数据源路由。baostock 失败自动 fallback akshare"""
     source = get_data_source()
 
     if source == "akshare":
         return _fetch_akshare_minute(symbol, period, count)
-    else:
+    try:
         return _fetch_baostock_minute(symbol, period, count)
+    except Exception as e:
+        _write_debug_log(f"baostock 分钟线获取失败，fallback 到 akshare: {e}")
+        return _fetch_akshare_minute(symbol, period, count)
+
+
+def _write_debug_log(msg: str):
+    """写入调试日志（项目根目录），路径不再硬编码到 E: 盘"""
+    try:
+        log_dir = _PROJECT_ROOT / "logs"
+        log_dir.mkdir(parents=True, exist_ok=True)
+        log_path = log_dir / "akshare.log"
+        with open(str(log_path), "a", encoding="utf-8") as f:
+            import traceback
+            f.write(f"[{datetime.now()}] {msg}\n{traceback.format_exc() if 'Traceback' in str(msg) else ''}\n")
+    except Exception:
+        pass
 
 
 def _fetch_realtime_spot(symbol: str) -> Optional[dict]:
-    """akshare 实时行情（仅 baostock 模式兜底用）"""
+    """akshare 实时行情（仅 baostock 模式兜底用），带 30s 超时保护"""
     try:
         import akshare as ak
-        df = ak.fund_etf_spot_em()
-        row = df[df['代码'] == symbol.strip()]
-        if row.empty:
-            return None
-        r = row.iloc[0]
-        today = datetime.now().strftime('%Y-%m-%d')
-        return {
-            'date': today,
-            'open': float(r['开盘价']),
-            'high': float(r['最高价']),
-            'low': float(r['最低价']),
-            'close': float(r['最新价']),
-            'volume': int(r['成交量']),
-        }
+
+        def _call():
+            df = ak.fund_etf_spot_em()
+            row = df[df['代码'] == symbol.strip()]
+            if row.empty:
+                return None
+            r = row.iloc[0]
+            today = datetime.now().strftime('%Y-%m-%d')
+            return {
+                'date': today,
+                'open': float(r['开盘价']),
+                'high': float(r['最高价']),
+                'low': float(r['最低价']),
+                'close': float(r['最新价']),
+                'volume': int(r['成交量']),
+            }
+
+        return _call_with_timeout(_call)
+
     except Exception as e:
-        try:
-            with open("E:\\etf-trader\\debug_akshare.log", "a", encoding="utf-8") as f:
-                import traceback
-                f.write(f"[{datetime.now()}] akshare failed: {e}\n{traceback.format_exc()}\n")
-        except Exception:
-            pass
+        _write_debug_log(f"akshare 实时行情获取失败: {e}")
         return None

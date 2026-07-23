@@ -17,6 +17,12 @@ from backend.data_fetcher import fetch_etf_daily
 from backend.factor_engine import run_factor_pipeline
 from backend.llm_decision import decide
 
+# period("short"/"long") → days 映射
+_PERIOD_TO_DAYS = {
+    "short": 30,
+    "long": 90,
+}
+
 
 def run(symbol: str = None, period: str = None, risk: str = None):
     if symbol is None:
@@ -28,6 +34,7 @@ def run(symbol: str = None, period: str = None, risk: str = None):
 
     risk_params = get_risk_params(risk)
     max_bars = get_setting("max_bars", 200)
+    days = _PERIOD_TO_DAYS.get(period, 60)
 
     print(f"=== ETF 交易决策 ===")
     print(f"标的: {symbol}  周期: {period}  档位: {risk}")
@@ -55,7 +62,7 @@ def run(symbol: str = None, period: str = None, risk: str = None):
     # 3. LLM 决策
     print("[3/3] LLM 决策中...")
     try:
-        result = decide(symbol, factor_result, period=period, risk_profile=risk)
+        result = decide(symbol, factor_result, days=days, risk_profile=risk)
         if "error" in result:
             print(f"  LLM 解析异常: {result['error']}")
             return

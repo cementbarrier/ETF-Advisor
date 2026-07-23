@@ -30,7 +30,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 import tkinter as tk
 from tkinter import ttk, scrolledtext, messagebox, filedialog
 
-from backend.config_manager import get_setting, set_setting, get_risk_params
+from backend.config_manager import get_setting, set_setting, get_risk_params, DEFAULTS
 from backend.data_fetcher import fetch_etf_daily
 from backend.factor_engine import run_factor_pipeline
 from backend.llm_decision import decide
@@ -55,7 +55,7 @@ def _load_sentiment() -> str:
     优先级：JSON（stock-tool batch_parser 结构化输出） > TXT（旧格式）
     JSON 格式：{ videos: [{bvid, opinion}], entry_signals: [{sector, reason}] }
     """
-    file_path = get_setting("sentiment_dir", "E:/video2txt")
+    file_path = get_setting("sentiment_dir", DEFAULTS["sentiment_dir"])
     if not file_path:
         return ""
     p = Path(file_path)
@@ -122,7 +122,7 @@ def _load_sentiment() -> str:
 
 def _save_result(symbol: str, result: dict, factor: dict):
     """将 LLM 决策结果保存为 txt 文件"""
-    save_dir = get_setting("output_dir", "E:/etf-trader/output")
+    save_dir = get_setting("output_dir", DEFAULTS["output_dir"])
     if not save_dir:
         return
     try:
@@ -326,8 +326,23 @@ def _get_manual_account() -> tuple[list[dict], dict]:
     return positions, balance
 
 
+# ── 取消分析机制 ──
+_cancel_event = threading.Event()
+_btn_cancel = None  # 取消按钮引用，分析时显示
+
+
 def _run_analysis():
+    global _btn_cancel
     btn.config(state="disabled", text="分析中...")
+
+    # 显示取消按钮
+    if _btn_cancel is None:
+        _btn_cancel = ttk.Button(top, text="取消", command=_on_cancel_analysis, width=6)
+    _btn_cancel.grid(row=1, column=7, padx=(10, 0), sticky="w", pady=(8, 0))
+    _btn_cancel.config(state="normal")
+
+    # 重置取消标志
+    _cancel_event.clear()
 
     symbol = etf_var.get().strip()
     days = days_var.get()
@@ -335,6 +350,14 @@ def _run_analysis():
     use_positions = pos_var.get() == "1"
 
     _save_api_key()
+
+    # API Key 未配置检查
+    api_key = get_setting("llm_api_key", "")
+    if not api_key:
+        messagebox.showwarning("API Key 未配置", "请先在顶部填写 LLM API Key 后重试。")
+        _log("错误: API Key 未配置，已弹窗提示")
+        _finish_analysis()
+        return
 
     try:
         _log(f"=== {symbol} {days}天 {risk} ===")
@@ -380,6 +403,8 @@ def _run_analysis():
 
         _log(f"  获取 {len(df)} 条数据, 最新 {df['date'].iloc[-1].strftime('%Y-%m-%d')}")
 
+        _check_cancel()
+
         _log("[2/3] 计算技术指标...")
         risk_params = get_risk_params(risk)
         factor = run_factor_pipeline(df, risk_params)
@@ -392,6 +417,8 @@ def _run_analysis():
             _log(f"  板块舆情: 已加载 ({len(sentiment)} 字)")
         else:
             _log("  板块舆情: 无外部数据，纯技术面分析")
+
+        _check_cancel()
 
         _log("[3/3] LLM 决策...")
 
@@ -452,10 +479,32 @@ def _run_analysis():
         # 保存结果
         _save_result(symbol, result, factor)
 
+    except InterruptedError:
+        _log("分析已取消")
     except Exception as e:
         _log(f"异常: {e}")
     finally:
-        btn.config(state="normal", text="开始分析")
+        _finish_analysis()
+
+
+def _on_cancel_analysis():
+    """取消按钮回调：设置取消标志"""
+    _cancel_event.set()
+    _log("用户取消分析")
+
+
+def _check_cancel():
+    """检查取消标志，若已设置则抛出异常中断分析"""
+    if _cancel_event.is_set():
+        raise InterruptedError("用户取消")
+
+
+def _finish_analysis():
+    """分析结束（正常/异常/取消）：恢复按钮状态，隐藏取消按钮"""
+    btn.config(state="normal", text="开始分析")
+    if _btn_cancel is not None:
+        _btn_cancel.config(state="disabled")
+        _btn_cancel.grid_forget()
 
 
 def on_run():
@@ -613,7 +662,7 @@ token_entry.bind("<Return>", lambda e: set_setting("data_source_token", token_va
 
 # Row 3: 舆情文件
 ttk.Label(top, text="舆情文件:").grid(row=3, column=0, sticky="w", padx=(0, 5), pady=(6, 0))
-sent_var = tk.StringVar(value=get_setting("sentiment_dir", "E:/video2txt"))
+sent_var = tk.StringVar(value=get_setting("sentiment_dir", DEFAULTS["sentiment_dir"]))
 sent_frame = ttk.Frame(top)
 sent_frame.grid(row=3, column=1, columnspan=6, sticky="ew", pady=(6, 0))
 sent_entry = ttk.Entry(sent_frame, textvariable=sent_var)
@@ -643,7 +692,7 @@ sent_btn.pack(side="left", padx=(5, 0))
 
 # Row 4: 保存目录
 ttk.Label(top, text="保存目录:").grid(row=4, column=0, sticky="w", padx=(0, 5), pady=(6, 0))
-save_var = tk.StringVar(value=get_setting("output_dir", "E:/etf-trader/output"))
+save_var = tk.StringVar(value=get_setting("output_dir", DEFAULTS["output_dir"]))
 save_frame = ttk.Frame(top)
 save_frame.grid(row=4, column=1, columnspan=6, sticky="ew", pady=(6, 0))
 save_entry = ttk.Entry(save_frame, textvariable=save_var)

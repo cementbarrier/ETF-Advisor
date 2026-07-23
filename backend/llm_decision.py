@@ -86,6 +86,7 @@ def decide(
     """
     调用 LLM 做辅助决策。
     factor_result: factor_engine.run_factor_pipeline 的输出
+    days: 分析周期天数（CLI run.py 中 period="short"→30, "long"→90，由 run.py 映射后传入）
     返回: 解析后的 JSON 字典
     """
     if risk_profile is None:
