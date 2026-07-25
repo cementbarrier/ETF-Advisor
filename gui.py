@@ -345,7 +345,10 @@ def _run_analysis():
     _cancel_event.clear()
 
     symbol = etf_var.get().strip()
-    days = days_var.get()
+    try:
+        days = int(days_var.get().strip())
+    except ValueError:
+        days = 60
     risk = risk_var.get()
     use_positions = pos_var.get() == "1"
 
@@ -479,6 +482,13 @@ def _run_analysis():
         # 保存结果
         _save_result(symbol, result, factor)
 
+        # 保存最近常用 ETF 和天数，刷新下拉列表
+        if symbol:
+            _save_recent_etf(symbol)
+            _refresh_etf_combobox()
+        _save_recent_days(days)
+        _refresh_days_combobox()
+
     except InterruptedError:
         _log("分析已取消")
     except Exception as e:
@@ -596,6 +606,62 @@ def _on_unmap(event):
         _hide_to_tray()
 
 
+# ── ETF 名称映射（代码 → 简称）──
+ETF_NAME_MAP = {
+    "510050": "上证50", "510300": "沪深300", "510500": "中证500",
+    "159915": "创业板", "588000": "科创50", "512880": "证券ETF",
+    "512100": "1000ETF", "513100": "纳指ETF", "518880": "黄金ETF",
+    "159941": "纳指", "510880": "红利ETF", "512010": "医药ETF",
+    "159845": "中证1000", "511260": "十年国债", "511010": "国债ETF",
+    "513050": "中概互联", "159605": "互联中概", "516510": "云计算",
+    "515790": "光伏ETF", "515030": "新能车", "512690": "酒ETF",
+    "512660": "军工ETF", "512760": "芯片ETF", "515050": "5GETF",
+}
+
+
+def _format_etf_display(code: str) -> str:
+    """格式化 ETF 代码为下拉显示文本：'510050 上证50'"""
+    name = ETF_NAME_MAP.get(code, "")
+    return f"{code} {name}" if name else code
+
+
+def _save_recent_etf(code: str):
+    """将 ETF 代码添加到最近列表头部，去重，最多 10 个"""
+    recent = list(get_setting("recent_etfs", []))
+    if code in recent:
+        recent.remove(code)
+    recent.insert(0, code)
+    set_setting("recent_etfs", recent[:10])
+
+
+def _save_recent_days(days: int):
+    """将天数添加到最近列表头部，去重，最多 6 个"""
+    recent = list(get_setting("recent_days", [1, 7, 30]))
+    if days in recent:
+        recent.remove(days)
+    recent.insert(0, days)
+    set_setting("recent_days", recent[:6])
+
+
+def _refresh_etf_combobox():
+    """刷新 ETF 下拉列表：最近常用 + 名称简写"""
+    recent = get_setting("recent_etfs", [])
+    values = [_format_etf_display(c) for c in recent]
+    # 追加不在最近列表中的热门 ETF
+    hot = ["510050", "510300", "510500", "159915", "588000", "512880", "513100", "518880"]
+    for c in hot:
+        disp = _format_etf_display(c)
+        if disp not in values:
+            values.append(disp)
+    etf_cb["values"] = values
+
+
+def _refresh_days_combobox():
+    """刷新天数下拉列表"""
+    recent = get_setting("recent_days", [1, 7, 30])
+    days_cb["values"] = [str(d) for d in recent]
+
+
 # ── 界面 ──
 root = tk.Tk()
 root.title("ETF-Advisor")
@@ -625,13 +691,21 @@ api_entry.bind("<Return>", _save_api_key)
 # Row 1: 参数
 ttk.Label(top, text="ETF代码:").grid(row=1, column=0, sticky="w", padx=(0, 5), pady=(8, 0))
 etf_var = tk.StringVar(value=get_setting("default_etf", "510050"))
-etf_entry = ttk.Entry(top, textvariable=etf_var, width=10)
-etf_entry.grid(row=1, column=1, sticky="w", pady=(8, 0))
+etf_cb = ttk.Combobox(top, textvariable=etf_var, width=18)
+etf_cb.grid(row=1, column=1, sticky="w", pady=(8, 0))
+# 下拉选中时提取纯代码
+def _on_etf_selected(event):
+    val = etf_var.get().strip()
+    if " " in val:
+        etf_var.set(val.split()[0])
+etf_cb.bind("<<ComboboxSelected>>", _on_etf_selected)
+_refresh_etf_combobox()
 
 ttk.Label(top, text="天数:").grid(row=1, column=2, sticky="w", padx=(15, 5), pady=(8, 0))
-days_var = tk.IntVar(value=int(get_setting("default_days", 60)))
-days_sb = ttk.Spinbox(top, textvariable=days_var, from_=1, to=365, width=6)
-days_sb.grid(row=1, column=3, sticky="w", pady=(8, 0))
+days_var = tk.StringVar(value=str(get_setting("default_days", 60)))
+days_cb = ttk.Combobox(top, textvariable=days_var, width=6)
+days_cb.grid(row=1, column=3, sticky="w", pady=(8, 0))
+_refresh_days_combobox()
 
 ttk.Label(top, text="档位:").grid(row=1, column=4, sticky="w", padx=(15, 5), pady=(8, 0))
 risk_var = tk.StringVar(value=get_setting("risk_profile", "standard"))
