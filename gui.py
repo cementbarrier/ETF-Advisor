@@ -774,4 +774,18 @@ status = ttk.Label(root, text=status_text, relief="sunken", anchor="w", padding=
 status.pack(fill="x", side="bottom")
 
 if __name__ == "__main__":
+    # 单实例检测：仿 BiliDigest，禁止多开
+    _lock_path = Path(os.environ.get("TEMP", ".")) / "etf_trader_instance.lock"
+    try:
+        import msvcrt
+        _lock_fd = os.open(str(_lock_path), os.O_CREAT | os.O_RDWR, 0o644)
+        try:
+            msvcrt.locking(_lock_fd, msvcrt.LK_NBLCK, 1)
+        except os.error:
+            os.close(_lock_fd)
+            from tkinter import messagebox
+            messagebox.showwarning("ETF-Advisor", "程序已在运行中（可能隐藏在托盘区）")
+            sys.exit(0)
+    except Exception:
+        pass
     root.mainloop()
