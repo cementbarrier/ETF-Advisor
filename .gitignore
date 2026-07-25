@@ -14,3 +14,4 @@ output/
 *.lnk
 .vscode/
 .idea/
+.venv/

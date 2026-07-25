@@ -21,15 +21,8 @@ if getattr(sys, 'frozen', False):
 
 from typing import Optional
 from datetime import datetime, timedelta
-from pathlib import Path
 import threading
 import pandas as pd
-
-# 项目根目录（backend/ 的上一级）；冻结模式下为 EXE 所在目录
-if getattr(sys, 'frozen', False):
-    _PROJECT_ROOT = Path(sys.executable).parent
-else:
-    _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 # akshare 调用超时（秒）
 _AKSHARE_TIMEOUT = 30
@@ -235,8 +228,7 @@ def fetch_etf_daily(symbol: str, count: int = 200) -> Optional[pd.DataFrame]:
     # baostock 优先，失败自动切 akshare
     try:
         df = _fetch_baostock_daily(symbol, count)
-    except Exception as e:
-        _write_debug_log(f"baostock 日线获取失败，fallback 到 akshare: {e}")
+    except Exception:
         return _fetch_akshare_daily(symbol, count)
 
     if df is not None:
@@ -250,8 +242,6 @@ def fetch_etf_daily(symbol: str, count: int = 200) -> Optional[pd.DataFrame]:
                 df = pd.concat([df, new_row], ignore_index=True)
                 df = df.sort_values("date").tail(count).reset_index(drop=True)
     else:
-        # baostock 无数据，尝试 akshare 兜底
-        _write_debug_log("baostock 日线返回空，fallback 到 akshare")
         return _fetch_akshare_daily(symbol, count)
     return df
 
@@ -264,22 +254,8 @@ def fetch_etf_minute(symbol: str, period: str = "60", count: int = 200) -> Optio
         return _fetch_akshare_minute(symbol, period, count)
     try:
         return _fetch_baostock_minute(symbol, period, count)
-    except Exception as e:
-        _write_debug_log(f"baostock 分钟线获取失败，fallback 到 akshare: {e}")
-        return _fetch_akshare_minute(symbol, period, count)
-
-
-def _write_debug_log(msg: str):
-    """写入调试日志（项目根目录），路径不再硬编码到 E: 盘"""
-    try:
-        log_dir = _PROJECT_ROOT / "logs"
-        log_dir.mkdir(parents=True, exist_ok=True)
-        log_path = log_dir / "akshare.log"
-        with open(str(log_path), "a", encoding="utf-8") as f:
-            import traceback
-            f.write(f"[{datetime.now()}] {msg}\n{traceback.format_exc() if 'Traceback' in str(msg) else ''}\n")
     except Exception:
-        pass
+        return _fetch_akshare_minute(symbol, period, count)
 
 
 def _fetch_realtime_spot(symbol: str) -> Optional[dict]:
@@ -305,6 +281,5 @@ def _fetch_realtime_spot(symbol: str) -> Optional[dict]:
 
         return _call_with_timeout(_call)
 
-    except Exception as e:
-        _write_debug_log(f"akshare 实时行情获取失败: {e}")
+    except Exception:
         return None
