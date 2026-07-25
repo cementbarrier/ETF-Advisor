@@ -482,12 +482,10 @@ def _run_analysis():
         # 保存结果
         _save_result(symbol, result, factor)
 
-        # 保存最近常用 ETF 和天数，刷新下拉列表
+        # 保存最近常用 ETF，刷新下拉列表
         if symbol:
             _save_recent_etf(symbol)
             _refresh_etf_combobox()
-        _save_recent_days(days)
-        _refresh_days_combobox()
 
     except InterruptedError:
         _log("分析已取消")
@@ -634,15 +632,6 @@ def _save_recent_etf(code: str):
     set_setting("recent_etfs", recent[:10])
 
 
-def _save_recent_days(days: int):
-    """将天数添加到最近列表头部，去重，最多 6 个"""
-    recent = list(get_setting("recent_days", [1, 7, 30]))
-    if days in recent:
-        recent.remove(days)
-    recent.insert(0, days)
-    set_setting("recent_days", recent[:6])
-
-
 def _refresh_etf_combobox():
     """刷新 ETF 下拉列表：最近常用 + 名称简写"""
     recent = get_setting("recent_etfs", [])
@@ -657,9 +646,8 @@ def _refresh_etf_combobox():
 
 
 def _refresh_days_combobox():
-    """刷新天数下拉列表"""
-    recent = get_setting("recent_days", [1, 7, 30])
-    days_cb["values"] = [str(d) for d in recent]
+    """固定天数选项"""
+    days_cb["values"] = ["1", "7", "30"]
 
 
 # ── 界面 ──

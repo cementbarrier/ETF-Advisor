@@ -47,7 +47,6 @@ DEFAULTS = {
     "sentiment_dir": "",         # 板块舆情文件路径（GUI 中用 get_setting 取，首次空时引导浏览）
     "output_dir": "",            # 决策报告保存目录（空时 GUI 自动回退到项目 output/）
     "recent_etfs": [],           # 最近常用 ETF 代码列表（最多 10 个），如 ["510050","510300"]
-    "recent_days": [1, 7, 30],   # 最近常用天数列表（最多 6 个）
 }
 
 
