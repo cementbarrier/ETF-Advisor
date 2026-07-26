@@ -512,7 +512,7 @@ def _do_finish():
     btn.config(state="normal", text="开始分析")
     if _btn_cancel is not None:
         _btn_cancel.config(state="disabled")
-        _btn_cancel.grid_forget()
+        _btn_cancel.pack_forget()
 
 
 def on_run():
@@ -520,8 +520,8 @@ def on_run():
     # UI 操作必须在主线程执行，不能放到后台线程
     btn.config(state="disabled", text="分析中...")
     if _btn_cancel is None:
-        _btn_cancel = ttk.Button(top, text="取消", command=_on_cancel_analysis, width=6)
-    _btn_cancel.grid(row=1, column=9, padx=(8, 0), sticky="w", pady=(8, 0))
+        _btn_cancel = ttk.Button(row_a, text="取消", command=_on_cancel_analysis, width=6)
+    _btn_cancel.pack(side="left", padx=(8, 0))
     _btn_cancel.config(state="normal")
     _cancel_event.clear()
     threading.Thread(target=_run_analysis, daemon=True).start()
