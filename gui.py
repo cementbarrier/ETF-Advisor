@@ -671,15 +671,15 @@ top.pack(fill="x")
 # Row 0: API Key
 ttk.Label(top, text="API Key:").grid(row=0, column=0, sticky="w", padx=(0, 5))
 api_var = tk.StringVar(value=get_setting("llm_api_key", ""))
-api_entry = ttk.Entry(top, textvariable=api_var, width=36, show="*")
-api_entry.grid(row=0, column=1, columnspan=8, sticky="ew")
+api_entry = ttk.Entry(top, textvariable=api_var, width=30, show="*")
+api_entry.grid(row=0, column=1, columnspan=2, sticky="w")
 api_entry.bind("<FocusOut>", _save_api_key)
 api_entry.bind("<Return>", _save_api_key)
 
 # Row 1: 参数
 ttk.Label(top, text="ETF代码:").grid(row=1, column=0, sticky="w", padx=(0, 3), pady=(8, 0))
 etf_var = tk.StringVar(value=get_setting("default_etf", "510050"))
-etf_cb = ttk.Combobox(top, textvariable=etf_var, width=16)
+etf_cb = ttk.Combobox(top, textvariable=etf_var, width=12)
 etf_cb.grid(row=1, column=1, sticky="w", pady=(8, 0))
 def _on_etf_selected(event):
     val = etf_var.get().strip()
@@ -688,30 +688,30 @@ def _on_etf_selected(event):
 etf_cb.bind("<<ComboboxSelected>>", _on_etf_selected)
 _refresh_etf_combobox()
 
-ttk.Label(top, text="天数:").grid(row=1, column=2, sticky="w", padx=(12, 3), pady=(8, 0))
+ttk.Label(top, text="天数:").grid(row=1, column=2, sticky="w", padx=(8, 3), pady=(8, 0))
 days_var = tk.StringVar(value=str(get_setting("default_days", 60)))
-days_cb = ttk.Combobox(top, textvariable=days_var, width=6)
+days_cb = ttk.Combobox(top, textvariable=days_var, width=5)
 days_cb.grid(row=1, column=3, sticky="w", pady=(8, 0))
 _refresh_days_combobox()
 
-ttk.Label(top, text="档位:").grid(row=1, column=4, sticky="w", padx=(12, 3), pady=(8, 0))
+ttk.Label(top, text="档位:").grid(row=1, column=4, sticky="w", padx=(8, 3), pady=(8, 0))
 risk_var = tk.StringVar(value=get_setting("risk_profile", "standard"))
-risk_cb = ttk.Combobox(top, textvariable=risk_var, values=["conservative", "standard", "aggressive"], state="readonly", width=10)
+risk_cb = ttk.Combobox(top, textvariable=risk_var, values=["conservative", "standard", "aggressive"], state="readonly", width=8)
 risk_cb.grid(row=1, column=5, sticky="w", pady=(8, 0))
 
-# 数据源放在 Row 1 末尾
-ttk.Label(top, text="数据源:").grid(row=1, column=6, sticky="w", padx=(12, 3), pady=(8, 0))
+# 数据源
+ttk.Label(top, text="数据源:").grid(row=1, column=6, sticky="w", padx=(8, 3), pady=(8, 0))
 def _save_data_source(*_):
     set_setting("data_source", src_var.get().strip())
 src_var = tk.StringVar(value=get_setting("data_source", "baostock"))
-src_cb = ttk.Combobox(top, textvariable=src_var, values=["baostock", "akshare"], state="readonly", width=8)
+src_cb = ttk.Combobox(top, textvariable=src_var, values=["baostock", "akshare"], state="readonly", width=7)
 src_cb.grid(row=1, column=7, sticky="w", pady=(8, 0))
 src_cb.bind("<<ComboboxSelected>>", _save_data_source)
 
 btn = ttk.Button(top, text="开始分析", command=on_run)
-btn.grid(row=1, column=8, padx=(12, 0), sticky="w", pady=(8, 0))
+btn.grid(row=1, column=8, padx=(8, 0), sticky="w", pady=(8, 0))
 
-# Row 2: 模型提供商 + 模型名 + Token
+# Row 2: 模型提供商 + 模型名
 ttk.Label(top, text="模型:").grid(row=2, column=0, sticky="w", padx=(0, 3), pady=(6, 0))
 
 PROVIDER_MODELS = {
@@ -732,23 +732,17 @@ def _save_llm_model(*_):
     set_setting("llm_model", model_var.get().strip())
 
 provider_var = tk.StringVar(value=get_setting("llm_provider", "deepseek"))
-provider_cb = ttk.Combobox(top, textvariable=provider_var, values=list(PROVIDER_MODELS.keys()), state="readonly", width=12)
+provider_cb = ttk.Combobox(top, textvariable=provider_var, values=list(PROVIDER_MODELS.keys()), state="readonly", width=10)
 provider_cb.grid(row=2, column=1, sticky="w", pady=(6, 0))
 provider_cb.bind("<<ComboboxSelected>>", _save_llm_provider)
 
+ttk.Label(top, text="名称:").grid(row=2, column=2, sticky="w", padx=(8, 3), pady=(6, 0))
 current_provider = provider_var.get()
 current_models = PROVIDER_MODELS.get(current_provider, ["deepseek-v4-pro"])
 model_var = tk.StringVar(value=get_setting("llm_model", current_models[0]))
-model_cb = ttk.Combobox(top, textvariable=model_var, values=current_models, state="readonly", width=22)
-model_cb.grid(row=2, column=2, columnspan=2, sticky="w", padx=(5, 0), pady=(6, 0))
+model_cb = ttk.Combobox(top, textvariable=model_var, values=current_models, state="readonly", width=18)
+model_cb.grid(row=2, column=3, sticky="w", pady=(6, 0))
 model_cb.bind("<<ComboboxSelected>>", _save_llm_model)
-
-ttk.Label(top, text="Token:").grid(row=2, column=4, sticky="w", padx=(12, 3), pady=(6, 0))
-token_var = tk.StringVar(value=get_setting("data_source_token", ""))
-token_entry = ttk.Entry(top, textvariable=token_var, width=14, show="*")
-token_entry.grid(row=2, column=5, sticky="w", pady=(6, 0))
-token_entry.bind("<FocusOut>", lambda e: set_setting("data_source_token", token_var.get().strip()))
-token_entry.bind("<Return>", lambda e: set_setting("data_source_token", token_var.get().strip()))
 
 # Row 3: 舆情文件
 ttk.Label(top, text="舆情文件:").grid(row=3, column=0, sticky="w", padx=(0, 5), pady=(6, 0))
