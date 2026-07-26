@@ -655,7 +655,7 @@ def _refresh_days_combobox():
 # ── 界面 ──
 root = tk.Tk()
 root.title("ETF-Advisor")
-root.geometry("551x750")
+root.geometry("490x750")
 root.resizable(True, True)
 
 # 托盘：点击关闭/最小化时隐藏到托盘
