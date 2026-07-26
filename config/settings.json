@@ -1,6 +1,6 @@
 {
   "llm_provider": "deepseek",
-  "llm_model": "deepseek-chat",
+  "llm_model": "deepseek-v4-pro",
   "llm_api_key": "",
   "risk_profile": "standard",
   "risk_params": {

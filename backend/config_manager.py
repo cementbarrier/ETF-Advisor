@@ -35,7 +35,7 @@ CONFIG_FILE = os.path.join(CONFIG_DIR, "settings.json")
 # ── 全局默认值：所有模块统一从 DEFAULTS 取回退值，不再各自硬编码路径 ──
 DEFAULTS = {
     "llm_provider": "deepseek",
-    "llm_model": "deepseek-chat",
+    "llm_model": "deepseek-v4-pro",
     "llm_api_key": "",
     "risk_profile": "standard",
     "default_etf": "510050",
