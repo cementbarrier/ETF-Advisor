@@ -671,7 +671,7 @@ top.pack(fill="x")
 # Row 0: API Key
 ttk.Label(top, text="API Key:").grid(row=0, column=0, sticky="w", padx=(0, 5))
 api_var = tk.StringVar(value=get_setting("llm_api_key", ""))
-api_entry = ttk.Entry(top, textvariable=api_var, width=55, show="*")
+api_entry = ttk.Entry(top, textvariable=api_var, width=36, show="*")
 api_entry.grid(row=0, column=1, columnspan=8, sticky="ew")
 api_entry.bind("<FocusOut>", _save_api_key)
 api_entry.bind("<Return>", _save_api_key)

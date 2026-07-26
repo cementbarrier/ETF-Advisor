@@ -22,7 +22,37 @@ if getattr(sys, 'frozen', False):
 from typing import Optional
 from datetime import datetime, timedelta
 import threading
+import time
 import pandas as pd
+
+# ── 请求级代理 / UA 绕过（东方财富 WAF 检测） ──
+
+def _patch_requests_for_em():
+    """monkey-patch requests.Session.request 以绕过东方财富 WAF"""
+    try:
+        import requests
+        _orig_request = requests.Session.request
+
+        def _patched_request(self, method, url, *args, **kwargs):
+            self.trust_env = False
+            kwargs.setdefault('proxies', None)
+            kwargs.setdefault('timeout', 30)
+            if 'headers' not in kwargs:
+                kwargs['headers'] = {}
+            kwargs['headers'].setdefault(
+                'User-Agent',
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
+                'AppleWebKit/537.36 (KHTML, like Gecko) '
+                'Chrome/120.0.0.0 Safari/537.36'
+            )
+            kwargs['headers'].setdefault('Referer', 'https://quote.eastmoney.com/')
+            return _orig_request(self, method, url, *args, **kwargs)
+
+        requests.Session.request = _patched_request
+    except ImportError:
+        pass
+
+_patch_requests_for_em()
 
 # akshare 调用超时（秒）
 _AKSHARE_TIMEOUT = 30
@@ -218,44 +248,73 @@ def _fetch_akshare_minute(symbol: str, period: str = "60", count: int = 200) -> 
 def fetch_etf_daily(symbol: str, count: int = 200) -> Optional[pd.DataFrame]:
     """获取 ETF 日 K 线（含今日实时行情），根据配置数据源路由。
 
-    baostock 失败（登录/查询异常）时自动 fallback 到 akshare。
+    akshare 失败自动降级到 baostock，baostock 失败自动降级到 akshare。
     """
     source = get_data_source()
+    fallback = "baostock" if source == "akshare" else "akshare"
 
-    if source == "akshare":
-        return _fetch_akshare_daily(symbol, count)
-
-    # baostock 优先，失败自动切 akshare
-    try:
+    def _try_baostock():
         df = _fetch_baostock_daily(symbol, count)
-    except Exception:
-        return _fetch_akshare_daily(symbol, count)
+        if df is not None:
+            last_date = df["date"].max()
+            today_str = datetime.now().strftime("%Y-%m-%d")
+            if last_date.strftime("%Y-%m-%d") != today_str:
+                spot = _fetch_realtime_spot(symbol)
+                if spot and spot['close'] > 0:
+                    new_row = pd.DataFrame([spot])
+                    new_row["date"] = pd.to_datetime(new_row["date"])
+                    df = pd.concat([df, new_row], ignore_index=True)
+                    df = df.sort_values("date").tail(count).reset_index(drop=True)
+        return df
 
-    if df is not None:
-        last_date = df["date"].max()
-        today = datetime.now().strftime("%Y-%m-%d")
-        if last_date.strftime("%Y-%m-%d") != today:
-            spot = _fetch_realtime_spot(symbol)
-            if spot and spot['close'] > 0:
-                new_row = pd.DataFrame([spot])
-                new_row["date"] = pd.to_datetime(new_row["date"])
-                df = pd.concat([df, new_row], ignore_index=True)
-                df = df.sort_values("date").tail(count).reset_index(drop=True)
-    else:
-        return _fetch_akshare_daily(symbol, count)
-    return df
+    def _try_akshare():
+        return _call_with_timeout(lambda: _fetch_akshare_daily(symbol, count))
+
+    primary_fn = _try_baostock if source == "baostock" else _try_akshare
+    fallback_fn = _try_akshare if source == "baostock" else _try_baostock
+
+    try:
+        df = primary_fn()
+        if df is not None and not df.empty:
+            return df
+    except Exception:
+        pass
+
+    # 回退
+    try:
+        return fallback_fn()
+    except Exception:
+        pass
+
+    return None
 
 
 def fetch_etf_minute(symbol: str, period: str = "60", count: int = 200) -> Optional[pd.DataFrame]:
-    """获取 ETF 分钟 K 线，根据配置数据源路由。baostock 失败自动 fallback akshare"""
+    """获取 ETF 分钟 K 线，根据配置数据源路由。失败自动降级到另一数据源"""
     source = get_data_source()
 
-    if source == "akshare":
-        return _fetch_akshare_minute(symbol, period, count)
-    try:
+    def _try_baostock():
         return _fetch_baostock_minute(symbol, period, count)
+
+    def _try_akshare():
+        return _call_with_timeout(lambda: _fetch_akshare_minute(symbol, period, count))
+
+    primary_fn = _try_baostock if source == "baostock" else _try_akshare
+    fallback_fn = _try_akshare if source == "baostock" else _try_baostock
+
+    try:
+        df = primary_fn()
+        if df is not None and not df.empty:
+            return df
     except Exception:
-        return _fetch_akshare_minute(symbol, period, count)
+        pass
+
+    try:
+        return fallback_fn()
+    except Exception:
+        pass
+
+    return None
 
 
 def _fetch_realtime_spot(symbol: str) -> Optional[dict]:
