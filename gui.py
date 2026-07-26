@@ -669,17 +669,17 @@ top = ttk.Frame(root, padding=10)
 top.pack(fill="x")
 
 # Row 0: API Key
-ttk.Label(top, text="API Key:").grid(row=0, column=0, sticky="w", padx=(0, 5))
+ttk.Label(top, text="API Key:").grid(row=0, column=0, sticky="e", padx=(0, 1))
 api_var = tk.StringVar(value=get_setting("llm_api_key", ""))
-api_entry = ttk.Entry(top, textvariable=api_var, width=30, show="*")
+api_entry = ttk.Entry(top, textvariable=api_var, width=28, show="*")
 api_entry.grid(row=0, column=1, columnspan=2, sticky="w")
 api_entry.bind("<FocusOut>", _save_api_key)
 api_entry.bind("<Return>", _save_api_key)
 
 # Row 1: 参数
-ttk.Label(top, text="ETF代码:").grid(row=1, column=0, sticky="w", padx=(0, 3), pady=(8, 0))
+ttk.Label(top, text="ETF代码:").grid(row=1, column=0, sticky="e", padx=(0, 1), pady=(8, 0))
 etf_var = tk.StringVar(value=get_setting("default_etf", "510050"))
-etf_cb = ttk.Combobox(top, textvariable=etf_var, width=12)
+etf_cb = ttk.Combobox(top, textvariable=etf_var, width=10)
 etf_cb.grid(row=1, column=1, sticky="w", pady=(8, 0))
 def _on_etf_selected(event):
     val = etf_var.get().strip()
@@ -688,19 +688,19 @@ def _on_etf_selected(event):
 etf_cb.bind("<<ComboboxSelected>>", _on_etf_selected)
 _refresh_etf_combobox()
 
-ttk.Label(top, text="天数:").grid(row=1, column=2, sticky="w", padx=(8, 3), pady=(8, 0))
+ttk.Label(top, text="天数:").grid(row=1, column=2, sticky="e", padx=(3, 1), pady=(8, 0))
 days_var = tk.StringVar(value=str(get_setting("default_days", 60)))
-days_cb = ttk.Combobox(top, textvariable=days_var, width=5)
+days_cb = ttk.Combobox(top, textvariable=days_var, width=4)
 days_cb.grid(row=1, column=3, sticky="w", pady=(8, 0))
 _refresh_days_combobox()
 
-ttk.Label(top, text="档位:").grid(row=1, column=4, sticky="w", padx=(8, 3), pady=(8, 0))
+ttk.Label(top, text="档位:").grid(row=1, column=4, sticky="e", padx=(3, 1), pady=(8, 0))
 risk_var = tk.StringVar(value=get_setting("risk_profile", "standard"))
 risk_cb = ttk.Combobox(top, textvariable=risk_var, values=["conservative", "standard", "aggressive"], state="readonly", width=8)
 risk_cb.grid(row=1, column=5, sticky="w", pady=(8, 0))
 
 # 数据源
-ttk.Label(top, text="数据源:").grid(row=1, column=6, sticky="w", padx=(8, 3), pady=(8, 0))
+ttk.Label(top, text="数据源:").grid(row=1, column=6, sticky="e", padx=(3, 1), pady=(8, 0))
 def _save_data_source(*_):
     set_setting("data_source", src_var.get().strip())
 src_var = tk.StringVar(value=get_setting("data_source", "baostock"))
@@ -709,10 +709,10 @@ src_cb.grid(row=1, column=7, sticky="w", pady=(8, 0))
 src_cb.bind("<<ComboboxSelected>>", _save_data_source)
 
 btn = ttk.Button(top, text="开始分析", command=on_run)
-btn.grid(row=1, column=8, padx=(8, 0), sticky="w", pady=(8, 0))
+btn.grid(row=1, column=8, padx=(6, 0), sticky="w", pady=(8, 0))
 
 # Row 2: 模型提供商 + 模型名
-ttk.Label(top, text="模型:").grid(row=2, column=0, sticky="w", padx=(0, 3), pady=(6, 0))
+ttk.Label(top, text="模型:").grid(row=2, column=0, sticky="e", padx=(0, 1), pady=(6, 0))
 
 PROVIDER_MODELS = {
     "deepseek": ["deepseek-v4-pro", "deepseek-v4-flash"],
@@ -736,19 +736,19 @@ provider_cb = ttk.Combobox(top, textvariable=provider_var, values=list(PROVIDER_
 provider_cb.grid(row=2, column=1, sticky="w", pady=(6, 0))
 provider_cb.bind("<<ComboboxSelected>>", _save_llm_provider)
 
-ttk.Label(top, text="名称:").grid(row=2, column=2, sticky="w", padx=(8, 3), pady=(6, 0))
+ttk.Label(top, text="名称:").grid(row=2, column=2, sticky="e", padx=(3, 1), pady=(6, 0))
 current_provider = provider_var.get()
 current_models = PROVIDER_MODELS.get(current_provider, ["deepseek-v4-pro"])
 model_var = tk.StringVar(value=get_setting("llm_model", current_models[0]))
-model_cb = ttk.Combobox(top, textvariable=model_var, values=current_models, state="readonly", width=18)
+model_cb = ttk.Combobox(top, textvariable=model_var, values=current_models, state="readonly", width=16)
 model_cb.grid(row=2, column=3, sticky="w", pady=(6, 0))
 model_cb.bind("<<ComboboxSelected>>", _save_llm_model)
 
 # Row 3: 舆情文件
-ttk.Label(top, text="舆情文件:").grid(row=3, column=0, sticky="w", padx=(0, 5), pady=(6, 0))
+ttk.Label(top, text="舆情文件:").grid(row=3, column=0, sticky="e", padx=(0, 1), pady=(6, 0))
 sent_var = tk.StringVar(value=get_setting("sentiment_dir", DEFAULTS["sentiment_dir"]))
 sent_frame = ttk.Frame(top)
-sent_frame.grid(row=3, column=1, columnspan=6, sticky="ew", pady=(6, 0))
+sent_frame.grid(row=3, column=1, columnspan=3, sticky="ew", pady=(6, 0))
 sent_entry = ttk.Entry(sent_frame, textvariable=sent_var)
 sent_entry.pack(side="left", fill="x", expand=True)
 sent_entry.bind("<FocusOut>", lambda e: set_setting("sentiment_dir", sent_var.get().strip()))
@@ -775,10 +775,10 @@ sent_btn = ttk.Button(sent_frame, text="浏览...", command=_browse_sentiment_fi
 sent_btn.pack(side="left", padx=(5, 0))
 
 # Row 4: 保存目录
-ttk.Label(top, text="保存目录:").grid(row=4, column=0, sticky="w", padx=(0, 5), pady=(6, 0))
+ttk.Label(top, text="保存目录:").grid(row=4, column=0, sticky="e", padx=(0, 1), pady=(6, 0))
 save_var = tk.StringVar(value=get_setting("output_dir", DEFAULTS["output_dir"]))
 save_frame = ttk.Frame(top)
-save_frame.grid(row=4, column=1, columnspan=6, sticky="ew", pady=(6, 0))
+save_frame.grid(row=4, column=1, columnspan=3, sticky="ew", pady=(6, 0))
 save_entry = ttk.Entry(save_frame, textvariable=save_var)
 save_entry.pack(side="left", fill="x", expand=True)
 save_entry.bind("<FocusOut>", lambda e: set_setting("output_dir", save_var.get().strip()))
