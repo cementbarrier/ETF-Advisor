@@ -653,7 +653,7 @@ def _refresh_days_combobox():
 # ── 界面 ──
 root = tk.Tk()
 root.title("ETF-Advisor")
-root.geometry("700x750")
+root.geometry("640x750")
 root.resizable(True, True)
 
 # 托盘：点击关闭/最小化时隐藏到托盘
@@ -910,10 +910,10 @@ ttk.Label(bal_row, text="可用资金:").pack(side="left")
 ttk.Entry(bal_row, textvariable=bal_var, width=14).pack(side="left", padx=(5, 0))
 ttk.Label(bal_row, text="总资产:").pack(side="left", padx=(20, 0))
 ttk.Entry(bal_row, textvariable=total_var, width=14).pack(side="left", padx=(5, 0))
-ttk.Label(bal_row, text='（手动填写或点击"从同花顺读取"自动获取）', foreground="gray").pack(side="left", padx=(10, 0))
 
-# 输出区
+# 输出区（隐藏滚动条，保留鼠标滚轮滚动）
 output = scrolledtext.ScrolledText(root, font=("Consolas", 10), wrap="word", state="normal")
+output.vbar.pack_forget()
 output.pack(fill="both", expand=True, padx=10, pady=(8, 10))
 _log.widget = output
 
