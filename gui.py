@@ -179,6 +179,12 @@ def _save_result(symbol: str, result: dict, factor: dict):
 
 
 def _log(msg: str):
+    """线程安全日志：通过 root.after 切回主线程更新 UI"""
+    if hasattr(_log, "widget") and _log.widget:
+        root.after(0, lambda m=msg: _do_log(m))
+
+
+def _do_log(msg: str):
     if hasattr(_log, "widget") and _log.widget:
         _log.widget.configure(state="normal")
         _log.widget.insert(tk.END, msg + "\n")
@@ -334,18 +340,6 @@ _btn_cancel = None  # 取消按钮引用，分析时显示
 
 
 def _run_analysis():
-    global _btn_cancel
-    btn.config(state="disabled", text="分析中...")
-
-    # 显示取消按钮
-    if _btn_cancel is None:
-        _btn_cancel = ttk.Button(top, text="取消", command=_on_cancel_analysis, width=6)
-    _btn_cancel.grid(row=1, column=9, padx=(8, 0), sticky="w", pady=(8, 0))
-    _btn_cancel.config(state="normal")
-
-    # 重置取消标志
-    _cancel_event.clear()
-
     symbol = etf_var.get().strip()
     try:
         days = int(days_var.get().strip())
@@ -510,7 +504,11 @@ def _check_cancel():
 
 
 def _finish_analysis():
-    """分析结束（正常/异常/取消）：恢复按钮状态，隐藏取消按钮"""
+    """分析结束（正常/异常/取消）：恢复按钮状态，隐藏取消按钮（线程安全）"""
+    root.after(0, _do_finish)
+
+
+def _do_finish():
     btn.config(state="normal", text="开始分析")
     if _btn_cancel is not None:
         _btn_cancel.config(state="disabled")
@@ -518,6 +516,14 @@ def _finish_analysis():
 
 
 def on_run():
+    global _btn_cancel
+    # UI 操作必须在主线程执行，不能放到后台线程
+    btn.config(state="disabled", text="分析中...")
+    if _btn_cancel is None:
+        _btn_cancel = ttk.Button(top, text="取消", command=_on_cancel_analysis, width=6)
+    _btn_cancel.grid(row=1, column=9, padx=(8, 0), sticky="w", pady=(8, 0))
+    _btn_cancel.config(state="normal")
+    _cancel_event.clear()
     threading.Thread(target=_run_analysis, daemon=True).start()
 
 
