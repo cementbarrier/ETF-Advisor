@@ -729,8 +729,8 @@ root.geometry("490x750")
 root.resizable(True, True)
 
 # 托盘：点击关闭/最小化时隐藏到托盘
+root.protocol('WM_DELETE_WINDOW', _on_window_close)
 if HAS_TRAY:
-    root.protocol('WM_DELETE_WINDOW', _on_window_close)
     root.bind('<Unmap>', _on_unmap, add='+')
     _init_tray_icon()
 
