@@ -180,8 +180,10 @@ def _save_result(symbol: str, result: dict, factor: dict):
 
 def _log(msg: str):
     if hasattr(_log, "widget") and _log.widget:
+        _log.widget.configure(state="normal")
         _log.widget.insert(tk.END, msg + "\n")
         _log.widget.see(tk.END)
+        _log.widget.configure(state="disabled")
 
 
 def _save_api_key(*_):
@@ -653,7 +655,7 @@ def _refresh_days_combobox():
 # ── 界面 ──
 root = tk.Tk()
 root.title("ETF-Advisor")
-root.geometry("640x750")
+root.geometry("560x750")
 root.resizable(True, True)
 
 # 托盘：点击关闭/最小化时隐藏到托盘
@@ -912,7 +914,7 @@ ttk.Label(bal_row, text="总资产:").pack(side="left", padx=(20, 0))
 ttk.Entry(bal_row, textvariable=total_var, width=14).pack(side="left", padx=(5, 0))
 
 # 输出区（隐藏滚动条，保留鼠标滚轮滚动）
-output = scrolledtext.ScrolledText(root, font=("Consolas", 10), wrap="word", state="normal")
+output = scrolledtext.ScrolledText(root, font=("Consolas", 10), wrap="word", state="disabled")
 output.vbar.pack_forget()
 output.pack(fill="both", expand=True, padx=10, pady=(8, 10))
 _log.widget = output
