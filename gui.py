@@ -555,6 +555,51 @@ def _restore_window(icon, item=None):
     root.focus_force()
 
 
+def _show_close_dialog():
+    """显示关闭行为选择对话框，返回用户选择的 action 或 None（取消）"""
+    dialog = tk.Toplevel(root)
+    dialog.title("关闭行为")
+    dialog.geometry("380x220")
+    dialog.resizable(False, False)
+    dialog.transient(root)
+    dialog.grab_set()
+    
+    dialog.update_idletasks()
+    x = root.winfo_x() + (root.winfo_width() - 380) // 2
+    y = root.winfo_y() + (root.winfo_height() - 220) // 2
+    dialog.geometry(f"+{x}+{y}")
+    
+    action_var = tk.StringVar(value="tray")
+    dont_ask_var = tk.BooleanVar(value=False)
+    result = {"action": None}
+    
+    tk.Label(dialog, text="点击关闭按钮后，程序将：", font=("Microsoft YaHei", 12)).pack(pady=(15, 10))
+    
+    fg = tk.Frame(dialog)
+    fg.pack(pady=(0, 5))
+    tk.Radiobutton(fg, text="最小化到系统托盘", variable=action_var, value="tray", font=("Microsoft YaHei", 11)).pack(anchor="w", pady=2)
+    tk.Radiobutton(fg, text="退出应用", variable=action_var, value="exit", font=("Microsoft YaHei", 11)).pack(anchor="w", pady=2)
+    
+    tk.Checkbutton(dialog, text="不再提示", variable=dont_ask_var, font=("Microsoft YaHei", 10)).pack(pady=(5, 10))
+    
+    def on_cancel():
+        dialog.destroy()
+    
+    def on_confirm():
+        result["action"] = action_var.get()
+        set_setting("close_action", result["action"])
+        set_setting("close_dont_ask", "true" if dont_ask_var.get() else "false")
+        dialog.destroy()
+    
+    btn_frame = tk.Frame(dialog)
+    btn_frame.pack(pady=(5, 10))
+    tk.Button(btn_frame, text="取消", width=10, command=on_cancel).pack(side="left", padx=10)
+    tk.Button(btn_frame, text="确定", width=10, command=on_confirm).pack(side="left", padx=10)
+    
+    dialog.wait_window()
+    return result["action"]
+
+
 def _quit_app(icon, item=None):
     """彻底退出程序"""
     global _tray_icon, _should_exit
@@ -588,12 +633,31 @@ def _init_tray_icon():
 
 
 def _on_window_close():
-    """点击关闭按钮 → 隐藏到托盘（不退出）"""
+    """点击关闭按钮 → 弹出行为选择或按已保存配置执行"""
     global _should_exit
     if _should_exit:
         _quit_app(None)
         return
-    _hide_to_tray()
+    
+    # 如果用户勾选了"不再提示"，直接按保存的行为执行
+    if get_setting("close_dont_ask") == "true":
+        action = get_setting("close_action")
+        if action == "exit":
+            _should_exit = True
+            _quit_app(None)
+        else:
+            _hide_to_tray()
+        return
+    
+    # 弹出选择对话框
+    action = _show_close_dialog()
+    
+    if action == "exit":
+        _should_exit = True
+        _quit_app(None)
+    elif action == "tray":
+        _hide_to_tray()
+    # action 为 None（取消）→ 窗口保持打开
 
 
 def _on_unmap(event):
