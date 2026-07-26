@@ -668,19 +668,9 @@ total_var = tk.StringVar()
 top = ttk.Frame(root, padding=10)
 top.pack(fill="x")
 
-# Row 0: API Key
-row0 = ttk.Frame(top)
-row0.pack(fill="x")
-ttk.Label(row0, text="API Key:").pack(side="left")
-api_var = tk.StringVar(value=get_setting("llm_api_key", ""))
-api_entry = ttk.Entry(row0, textvariable=api_var, width=28, show="*")
-api_entry.pack(side="left", padx=(2, 0))
-api_entry.bind("<FocusOut>", _save_api_key)
-api_entry.bind("<Return>", _save_api_key)
-
 # ── 分析参数 LabelFrame ──
 param_lf = ttk.LabelFrame(top, text="分析参数", padding=6)
-param_lf.pack(fill="x", pady=(8, 0))
+param_lf.pack(fill="x", pady=(2, 0))
 
 # Row A: ETF代码 | 天数 | 档位 | 开始分析
 row_a = ttk.Frame(param_lf)
@@ -726,9 +716,119 @@ src_cb = ttk.Combobox(f, textvariable=src_var, values=["baostock", "akshare"], s
 src_cb.grid(row=0, column=1, sticky="w", padx=(2, 0))
 src_cb.bind("<<ComboboxSelected>>", _save_data_source)
 
+# Row C: 舆情文件 (浏览选择后才显示路径，空值隐藏)
+row_c = ttk.Frame(param_lf)
+row_c.pack(fill="x", pady=(4, 0))
+ttk.Label(row_c, text="舆情文件:").pack(side="left")
+
+sent_var = tk.StringVar()
+sent_path_frame = ttk.Frame(row_c)
+
+def _refresh_sent_display():
+    val = sent_var.get().strip()
+    if val:
+        display = val if len(val) <= 60 else "..." + val[-57:]
+        sent_path_label.config(text=display)
+        sent_path_frame.pack(side="left", padx=(2, 0))
+    else:
+        sent_path_frame.pack_forget()
+
+sent_path_label = ttk.Label(sent_path_frame, text="", foreground="gray")
+
+def _clear_sent():
+    sent_var.set("")
+    set_setting("sentiment_dir", "")
+    _refresh_sent_display()
+
+sent_clear_btn = ttk.Button(sent_path_frame, text="×", width=2, command=_clear_sent)
+sent_clear_btn.pack(side="left")
+sent_path_label.pack(side="left", padx=(2, 0))
+
+def _browse_sentiment_file():
+    f = filedialog.askopenfilename(
+        initialdir=str(Path(sent_var.get()).parent) if sent_var.get() else "E:/",
+        title="选择舆情总结文件",
+        filetypes=[
+            ("批次总结文件", "*.json;*.txt"),
+            ("JSON文件", "*.json"),
+            ("文本文件", "*.txt"),
+            ("所有文件", "*.*"),
+        ],
+    )
+    if f:
+        sent_var.set(f)
+        set_setting("sentiment_dir", f)
+        _refresh_sent_display()
+
+sent_btn = ttk.Button(row_c, text="浏览...", command=_browse_sentiment_file, width=6)
+sent_btn.pack(side="left", padx=(5, 0))
+
+init_sent = get_setting("sentiment_dir", "")
+sent_var.set(init_sent)
+_refresh_sent_display()
+
+# Row D: 保存目录 (浏览选择后才显示路径，空值隐藏)
+row_d = ttk.Frame(param_lf)
+row_d.pack(fill="x", pady=(4, 0))
+ttk.Label(row_d, text="保存目录:").pack(side="left")
+
+save_var = tk.StringVar()
+save_path_frame = ttk.Frame(row_d)
+
+def _refresh_save_display():
+    val = save_var.get().strip()
+    if val:
+        display = val if len(val) <= 60 else "..." + val[-57:]
+        save_path_label.config(text=display)
+        save_path_frame.pack(side="left", padx=(2, 0))
+    else:
+        save_path_frame.pack_forget()
+
+save_path_label = ttk.Label(save_path_frame, text="", foreground="gray")
+
+def _clear_save():
+    save_var.set("")
+    set_setting("output_dir", "")
+    _refresh_save_display()
+
+save_clear_btn = ttk.Button(save_path_frame, text="×", width=2, command=_clear_save)
+save_clear_btn.pack(side="left")
+save_path_label.pack(side="left", padx=(2, 0))
+
+def _browse_save_dir():
+    d = filedialog.askdirectory(
+        initialdir=save_var.get() or "E:/",
+        title="选择 LLM 决策保存目录",
+    )
+    if d:
+        save_var.set(d)
+        set_setting("output_dir", d)
+        _refresh_save_display()
+
+save_btn = ttk.Button(row_d, text="浏览...", command=_browse_save_dir, width=6)
+save_btn.pack(side="left", padx=(5, 0))
+
+init_save = get_setting("output_dir", "")
+save_var.set(init_save)
+_refresh_save_display()
+
 # ── 模型设置 LabelFrame ──
 model_lf = ttk.LabelFrame(top, text="模型设置", padding=6)
 model_lf.pack(fill="x", pady=(6, 0))
+
+# API Key row
+ak_row = ttk.Frame(model_lf)
+ak_row.pack(fill="x")
+ttk.Label(ak_row, text="API Key:").pack(side="left")
+api_var = tk.StringVar(value=get_setting("llm_api_key", ""))
+api_entry = ttk.Entry(ak_row, textvariable=api_var, width=28, show="*")
+api_entry.pack(side="left", padx=(2, 0))
+api_entry.bind("<FocusOut>", _save_api_key)
+api_entry.bind("<Return>", _save_api_key)
+
+# 模型选择 row
+md_row = ttk.Frame(model_lf)
+md_row.pack(fill="x", pady=(4, 0))
 
 PROVIDER_MODELS = {
     "deepseek": ["deepseek-v4-pro", "deepseek-v4-flash"],
@@ -747,14 +847,14 @@ def _save_llm_provider(*_):
 def _save_llm_model(*_):
     set_setting("llm_model", model_var.get().strip())
 
-f = ttk.Frame(model_lf); f.pack(side="left")
+f = ttk.Frame(md_row); f.pack(side="left")
 ttk.Label(f, text="模型:").grid(row=0, column=0, sticky="e")
 provider_var = tk.StringVar(value=get_setting("llm_provider", "deepseek"))
 provider_cb = ttk.Combobox(f, textvariable=provider_var, values=list(PROVIDER_MODELS.keys()), state="readonly", width=10)
 provider_cb.grid(row=0, column=1, sticky="w", padx=(2, 0))
 provider_cb.bind("<<ComboboxSelected>>", _save_llm_provider)
 
-f = ttk.Frame(model_lf); f.pack(side="left", padx=(6, 0))
+f = ttk.Frame(md_row); f.pack(side="left", padx=(6, 0))
 ttk.Label(f, text="名称:").grid(row=0, column=0, sticky="e")
 current_provider = provider_var.get()
 current_models = PROVIDER_MODELS.get(current_provider, ["deepseek-v4-pro"])
@@ -762,60 +862,6 @@ model_var = tk.StringVar(value=get_setting("llm_model", current_models[0]))
 model_cb = ttk.Combobox(f, textvariable=model_var, values=current_models, state="readonly", width=16)
 model_cb.grid(row=0, column=1, sticky="w", padx=(2, 0))
 model_cb.bind("<<ComboboxSelected>>", _save_llm_model)
-
-# Row 3: 舆情文件 (不撑满)
-row3 = ttk.Frame(top)
-row3.pack(fill="x", pady=(6, 0))
-ttk.Label(row3, text="舆情文件:").pack(side="left")
-sent_var = tk.StringVar(value=get_setting("sentiment_dir", DEFAULTS["sentiment_dir"]))
-sent_entry = ttk.Entry(row3, textvariable=sent_var, width=40)
-sent_entry.pack(side="left", padx=(2, 0))
-sent_entry.bind("<FocusOut>", lambda e: set_setting("sentiment_dir", sent_var.get().strip()))
-sent_entry.bind("<Return>", lambda e: set_setting("sentiment_dir", sent_var.get().strip()))
-
-
-def _browse_sentiment_file():
-    f = filedialog.askopenfilename(
-        initialdir=str(Path(sent_var.get()).parent) if sent_var.get() else "E:/",
-        title="选择舆情总结文件",
-        filetypes=[
-            ("批次总结文件", "*.json;*.txt"),
-            ("JSON文件", "*.json"),
-            ("文本文件", "*.txt"),
-            ("所有文件", "*.*"),
-        ],
-    )
-    if f:
-        sent_var.set(f)
-        set_setting("sentiment_dir", f)
-
-
-sent_btn = ttk.Button(row3, text="浏览...", command=_browse_sentiment_file, width=6)
-sent_btn.pack(side="left", padx=(5, 0))
-
-# Row 4: 保存目录 (不撑满)
-row4 = ttk.Frame(top)
-row4.pack(fill="x", pady=(6, 0))
-ttk.Label(row4, text="保存目录:").pack(side="left")
-save_var = tk.StringVar(value=get_setting("output_dir", DEFAULTS["output_dir"]))
-save_entry = ttk.Entry(row4, textvariable=save_var, width=40)
-save_entry.pack(side="left", padx=(2, 0))
-save_entry.bind("<FocusOut>", lambda e: set_setting("output_dir", save_var.get().strip()))
-save_entry.bind("<Return>", lambda e: set_setting("output_dir", save_var.get().strip()))
-
-
-def _browse_save_dir():
-    d = filedialog.askdirectory(
-        initialdir=save_var.get() or "E:/",
-        title="选择 LLM 决策保存目录",
-    )
-    if d:
-        save_var.set(d)
-        set_setting("output_dir", d)
-
-
-save_btn = ttk.Button(row4, text="浏览...", command=_browse_save_dir, width=6)
-save_btn.pack(side="left", padx=(5, 0))
 
 # ── 持仓区 ──
 pos_frame = ttk.LabelFrame(root, text="持仓管理", padding=8)
