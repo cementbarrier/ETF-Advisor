@@ -668,7 +668,7 @@ total_var = tk.StringVar()
 top = ttk.Frame(root, padding=10)
 top.pack(fill="x")
 
-# Row 0: API Key (不撑满, width=28)
+# Row 0: API Key
 row0 = ttk.Frame(top)
 row0.pack(fill="x")
 ttk.Label(row0, text="API Key:").pack(side="left")
@@ -678,11 +678,15 @@ api_entry.pack(side="left", padx=(2, 0))
 api_entry.bind("<FocusOut>", _save_api_key)
 api_entry.bind("<Return>", _save_api_key)
 
-# Row 1: 参数 (grid in sub-frame 保证 label 与 dropdown 垂直对齐)
-row1 = ttk.Frame(top)
-row1.pack(fill="x", pady=(8, 0))
+# ── 分析参数 LabelFrame ──
+param_lf = ttk.LabelFrame(top, text="分析参数", padding=6)
+param_lf.pack(fill="x", pady=(8, 0))
 
-f = ttk.Frame(row1); f.pack(side="left")
+# Row A: ETF代码 | 天数 | 档位 | 开始分析
+row_a = ttk.Frame(param_lf)
+row_a.pack(fill="x")
+
+f = ttk.Frame(row_a); f.pack(side="left")
 ttk.Label(f, text="ETF代码:").grid(row=0, column=0, sticky="e")
 etf_var = tk.StringVar(value=get_setting("default_etf", "510050"))
 etf_cb = ttk.Combobox(f, textvariable=etf_var, width=10)
@@ -694,20 +698,26 @@ def _on_etf_selected(event):
 etf_cb.bind("<<ComboboxSelected>>", _on_etf_selected)
 _refresh_etf_combobox()
 
-f = ttk.Frame(row1); f.pack(side="left", padx=(6, 0))
+f = ttk.Frame(row_a); f.pack(side="left", padx=(6, 0))
 ttk.Label(f, text="天数:").grid(row=0, column=0, sticky="e")
 days_var = tk.StringVar(value=str(get_setting("default_days", 60)))
 days_cb = ttk.Combobox(f, textvariable=days_var, width=4)
 days_cb.grid(row=0, column=1, sticky="w", padx=(2, 0))
 _refresh_days_combobox()
 
-f = ttk.Frame(row1); f.pack(side="left", padx=(6, 0))
+f = ttk.Frame(row_a); f.pack(side="left", padx=(6, 0))
 ttk.Label(f, text="档位:").grid(row=0, column=0, sticky="e")
 risk_var = tk.StringVar(value=get_setting("risk_profile", "standard"))
 risk_cb = ttk.Combobox(f, textvariable=risk_var, values=["conservative", "standard", "aggressive"], state="readonly", width=8)
 risk_cb.grid(row=0, column=1, sticky="w", padx=(2, 0))
 
-f = ttk.Frame(row1); f.pack(side="left", padx=(6, 0))
+btn = ttk.Button(row_a, text="开始分析", command=on_run)
+btn.pack(side="left", padx=(10, 0))
+
+# Row B: 数据源
+row_b = ttk.Frame(param_lf)
+row_b.pack(fill="x", pady=(4, 0))
+f = ttk.Frame(row_b); f.pack(side="left")
 ttk.Label(f, text="数据源:").grid(row=0, column=0, sticky="e")
 def _save_data_source(*_):
     set_setting("data_source", src_var.get().strip())
@@ -716,12 +726,9 @@ src_cb = ttk.Combobox(f, textvariable=src_var, values=["baostock", "akshare"], s
 src_cb.grid(row=0, column=1, sticky="w", padx=(2, 0))
 src_cb.bind("<<ComboboxSelected>>", _save_data_source)
 
-btn = ttk.Button(row1, text="开始分析", command=on_run)
-btn.pack(side="left", padx=(10, 0))
-
-# Row 2: 模型 (grid 垂直对齐)
-row2 = ttk.Frame(top)
-row2.pack(fill="x", pady=(6, 0))
+# ── 模型设置 LabelFrame ──
+model_lf = ttk.LabelFrame(top, text="模型设置", padding=6)
+model_lf.pack(fill="x", pady=(6, 0))
 
 PROVIDER_MODELS = {
     "deepseek": ["deepseek-v4-pro", "deepseek-v4-flash"],
@@ -740,14 +747,14 @@ def _save_llm_provider(*_):
 def _save_llm_model(*_):
     set_setting("llm_model", model_var.get().strip())
 
-f = ttk.Frame(row2); f.pack(side="left")
+f = ttk.Frame(model_lf); f.pack(side="left")
 ttk.Label(f, text="模型:").grid(row=0, column=0, sticky="e")
 provider_var = tk.StringVar(value=get_setting("llm_provider", "deepseek"))
 provider_cb = ttk.Combobox(f, textvariable=provider_var, values=list(PROVIDER_MODELS.keys()), state="readonly", width=10)
 provider_cb.grid(row=0, column=1, sticky="w", padx=(2, 0))
 provider_cb.bind("<<ComboboxSelected>>", _save_llm_provider)
 
-f = ttk.Frame(row2); f.pack(side="left", padx=(6, 0))
+f = ttk.Frame(model_lf); f.pack(side="left", padx=(6, 0))
 ttk.Label(f, text="名称:").grid(row=0, column=0, sticky="e")
 current_provider = provider_var.get()
 current_models = PROVIDER_MODELS.get(current_provider, ["deepseek-v4-pro"])
