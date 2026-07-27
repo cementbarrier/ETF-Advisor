@@ -32,6 +32,7 @@ a = Analysis(
         'akshare',
         'pandas',
         'easytrader',
+        'pytesseract',
         'pywinauto',
         'win32api',
         'win32com',
