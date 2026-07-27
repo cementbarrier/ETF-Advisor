@@ -226,7 +226,27 @@ def get_account_snapshot() -> dict:
                 result["_debug"] = " | ".join(debug_lines)
                 for item in raw_pos:
                     if isinstance(item, dict):
-                        result["positions"].append(item)
+                        # 尝试从 dict 中提取标准字段
+                        code = (
+                            str(item.get("code", "")).strip()
+                            or str(item.get("证券代码", "")).strip()
+                            or str(item.get("stock_code", "")).strip()
+                            or str(item.get("代码", "")).strip()
+                        )
+                        if not code:
+                            continue  # 跳过无法识别代码的条目
+                        result["positions"].append({
+                            "code": code,
+                            "name": str(item.get("name", "") or item.get("证券名称", "") or item.get("stock_name", "") or "").strip(),
+                            "cost": float(item.get("cost", 0) or item.get("成本价", 0) or 0),
+                            "qty": int(float(item.get("qty", 0) or item.get("股票余额", 0) or item.get("volume", 0) or 0)),
+                            "market_value": float(item.get("market_value", 0) or item.get("市值", 0) or 0),
+                            "pnl_pct": (
+                                round(float(item.get("pnl_pct", 0) or item.get("盈亏比例", 0) or 0), 2)
+                                if any(k in item for k in ("pnl_pct", "盈亏比例"))
+                                else None
+                            ),
+                        })
             else:
                 # 无法识别的类型：直接记录 repr 摘要
                 try:

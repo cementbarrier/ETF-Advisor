@@ -381,7 +381,12 @@ def _run_analysis():
                 if not positions and debug_info:
                     _log("[诊断] 持仓解析为空，原始数据存在但未能匹配")
             if positions:
-                _log(f"[持仓] 共 {len(positions)} 条: {', '.join(p['code'] for p in positions)}")
+                codes = []
+                for p in positions:
+                    if isinstance(p, dict):
+                        c = p.get("code") or p.get("证券代码") or p.get("stock_code") or str(p)
+                        codes.append(str(c)[:20])
+                _log(f"[持仓] 共 {len(positions)} 条: {', '.join(codes)}")
             else:
                 _log("[持仓] 空仓")
             if account_balance:
