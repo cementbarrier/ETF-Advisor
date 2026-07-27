@@ -226,7 +226,7 @@ def _do_ths_read():
     """实际执行同花顺读取：弹出进度窗口，后台读取"""
     popup = tk.Toplevel(root)
     popup.title("读取持仓")
-    popup.geometry("320x120")
+    popup.geometry("340x140")
     popup.resizable(False, False)
     popup.transient(root)
     popup.grab_set()
@@ -235,26 +235,36 @@ def _do_ths_read():
     popup.update_idletasks()
     rx, ry = root.winfo_x(), root.winfo_y()
     rw, rh = root.winfo_width(), root.winfo_height()
-    pw, ph = 320, 120
+    pw, ph = 340, 140
     popup.geometry(f"+{rx + (rw - pw) // 2}+{ry + (rh - ph) // 2}")
 
     frame = ttk.Frame(popup, padding=15)
     frame.pack(fill="both", expand=True)
 
-    ttk.Label(frame, text="正在连接同花顺，请稍候...").pack(pady=(0, 10))
+    ttk.Label(frame, text="正在连接同花顺...").pack(pady=(0, 10))
 
-    bar = ttk.Progressbar(frame, mode="indeterminate", length=260)
+    bar = ttk.Progressbar(frame, mode="indeterminate", length=280)
     bar.pack()
     bar.start(15)
 
-    detail_var = tk.StringVar(value="初始化连接...")
+    detail_var = tk.StringVar(value="连接中，如同花顺弹出验证码请手动输入...")
     ttk.Label(frame, textvariable=detail_var, foreground="gray").pack(pady=(8, 0))
 
+    VERIFY_SECONDS = 10
+
+    def _countdown(remaining):
+        """主线程倒计时，与后台等待同步"""
+        if remaining <= 0:
+            detail_var.set("正在读取持仓与资金...")
+            return
+        detail_var.set(f"如同花顺弹出验证码，请在 {remaining} 秒内手动输入...")
+        popup.after(1000, lambda: _countdown(remaining - 1))
+
     def _do():
-        root.after(0, lambda: detail_var.set("连接同花顺，读取持仓与资金..."))
-        result = get_account_snapshot()
+        result = get_account_snapshot(verify_pause=VERIFY_SECONDS)
         root.after(0, lambda: _on_done(result, popup))
 
+    _countdown(VERIFY_SECONDS)
     threading.Thread(target=_do, daemon=True).start()
 
 

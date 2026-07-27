@@ -152,9 +152,13 @@ def get_balance_from_ths() -> dict:
     return {"success": True, "data": balance, "error": ""}
 
 
-def get_account_snapshot() -> dict:
+def get_account_snapshot(verify_pause: int = 0) -> dict:
     """
     一次性读取持仓 + 资金，返回组合结果。
+
+    Args:
+        verify_pause: 连接成功后等待秒数，给用户手动输入验证码的时间。默认 0 不等待。
+
     返回: {
         "success": bool, "error": str,
         "positions": [...], "balance": {...},
@@ -163,6 +167,10 @@ def get_account_snapshot() -> dict:
     user, err = _connect_ths()
     if err:
         return {"success": False, "error": err, "positions": [], "balance": {}, "_debug": f"connect failed: {err}"}
+
+    if verify_pause > 0:
+        import time
+        time.sleep(verify_pause)
 
     result = {"success": True, "error": "", "positions": [], "balance": {}, "_debug": ""}
 
