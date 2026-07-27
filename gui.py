@@ -211,16 +211,19 @@ def _save_api_key(*_):
 
 
 def _read_positions_from_ths():
-    """弹出进度窗口，后台读取同花顺持仓"""
+    """先弹验证码对话框，关闭后自动读取同花顺持仓"""
     btn_pos.config(state="disabled", text="读取中...")
+    from tkinter import messagebox
+    messagebox.showinfo(
+        "同花顺验证码",
+        "请手动完成同花顺的验证码输入\n\n完成后点击确定继续读取持仓",
+        parent=root,
+    )
+    _do_ths_read()
 
-    # ── 验证码等待弹窗 ──
-    import threading as _th
-    _v = _th.Event()
-    root.after(0, lambda: (_show_verify_dialog(_v)))
-    _v.wait(timeout=60)
 
-    # ── 进度弹窗 ──
+def _do_ths_read():
+    """实际执行同花顺读取：弹出进度窗口，后台读取"""
     popup = tk.Toplevel(root)
     popup.title("读取持仓")
     popup.geometry("320x120")
