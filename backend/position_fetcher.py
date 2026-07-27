@@ -162,7 +162,7 @@ def get_account_snapshot() -> dict:
     """
     user, err = _connect_ths()
     if err:
-        return {"success": False, "error": err, "positions": [], "balance": {}}
+        return {"success": False, "error": err, "positions": [], "balance": {}, "_debug": f"connect failed: {err}"}
 
     result = {"success": True, "error": "", "positions": [], "balance": {}, "_debug": ""}
 
@@ -218,8 +218,15 @@ def get_account_snapshot() -> dict:
                 for item in raw_pos:
                     if isinstance(item, dict):
                         result["positions"].append(item)
-    except Exception:
-        pass
+            else:
+                # 无法识别的类型：直接记录 repr 摘要
+                try:
+                    debug_lines.append(f"unexpected type repr={repr(raw_pos)[:200]}")
+                except Exception:
+                    debug_lines.append("unexpected type repr failed")
+                result["_debug"] = " | ".join(debug_lines)
+    except Exception as ex:
+        result["_debug"] = f"exception: {type(ex).__name__}: {str(ex)[:200]}"
 
     # 读资金
     try:
