@@ -214,6 +214,12 @@ def _read_positions_from_ths():
     """弹出进度窗口，后台读取同花顺持仓"""
     btn_pos.config(state="disabled", text="读取中...")
 
+    # ── 验证码等待弹窗 ──
+    import threading as _th
+    _v = _th.Event()
+    root.after(0, lambda: (_show_verify_dialog(_v)))
+    _v.wait(timeout=60)
+
     # ── 进度弹窗 ──
     popup = tk.Toplevel(root)
     popup.title("读取持仓")
@@ -376,12 +382,6 @@ def _run_analysis():
         if use_positions:
             positions, account_balance = _get_manual_account()
             if not positions:
-                # 弹窗等待用户手动完成验证码
-                import threading as _th
-                _log("[账户] 等待同花顺验证码，请在弹窗中输入后点确定...")
-                _v = _th.Event()
-                root.after(0, lambda: (_show_verify_dialog(_v)))
-                _v.wait(timeout=60)
                 _log("[账户] 尝试从同花顺自动读取...")
                 result = get_account_snapshot()
                 if result.get("success"):
