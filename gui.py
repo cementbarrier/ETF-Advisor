@@ -374,6 +374,12 @@ def _run_analysis():
                     account_balance = result.get("balance", {})
                 else:
                     _log(f"[账户] 读取失败: {result.get('error', '')}")
+                # 输出诊断信息
+                debug_info = result.get("_debug", "")
+                if debug_info:
+                    _log(f"[诊断] {debug_info}")
+                if not positions and debug_info:
+                    _log("[诊断] 持仓解析为空，原始数据存在但未能匹配")
             if positions:
                 _log(f"[持仓] 共 {len(positions)} 条: {', '.join(p['code'] for p in positions)}")
             else:

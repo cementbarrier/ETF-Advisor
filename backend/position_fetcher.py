@@ -164,17 +164,26 @@ def get_account_snapshot() -> dict:
     if err:
         return {"success": False, "error": err, "positions": [], "balance": {}}
 
-    result = {"success": True, "error": "", "positions": [], "balance": {}}
+    result = {"success": True, "error": "", "positions": [], "balance": {}, "_debug": ""}
 
     # 读持仓
     try:
         raw_pos = user.position
-        if raw_pos is not None and not (hasattr(raw_pos, "empty") and raw_pos.empty):
+        debug_lines = [f"position type={type(raw_pos).__name__}"]
+        if raw_pos is None:
+            debug_lines.append("raw_pos is None")
+            result["_debug"] = " | ".join(debug_lines)
+        elif hasattr(raw_pos, "empty") and raw_pos.empty:
+            debug_lines.append("raw_pos is empty (DataFrame/list empty)")
+            result["_debug"] = " | ".join(debug_lines)
+        else:
             import pandas as pd
             import logging as _logging
             _log2 = _logging.getLogger("etf_trader")
             _log2.debug(f"[position] type={type(raw_pos).__name__} empty={hasattr(raw_pos, 'empty') and raw_pos.empty if hasattr(raw_pos, 'empty') else 'N/A'}")
             if isinstance(raw_pos, pd.DataFrame):
+                debug_lines.append(f"DataFrame columns={list(raw_pos.columns)} rows={len(raw_pos)}")
+                result["_debug"] = " | ".join(debug_lines)
                 # 调试：输出 DataFrame 列名和行数
                 try:
                     import logging
@@ -202,6 +211,10 @@ def get_account_snapshot() -> dict:
                         "pnl_pct": round(float(row.get("盈亏比例", 0) or 0), 2) if "盈亏比例" in row else None,
                     })
             elif isinstance(raw_pos, list):
+                debug_lines.append(f"list len={len(raw_pos)}")
+                if raw_pos and isinstance(raw_pos[0], dict):
+                    debug_lines.append(f"first keys={list(raw_pos[0].keys())}")
+                result["_debug"] = " | ".join(debug_lines)
                 for item in raw_pos:
                     if isinstance(item, dict):
                         result["positions"].append(item)
