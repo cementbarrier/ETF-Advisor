@@ -166,6 +166,15 @@ def get_account_snapshot() -> dict:
 
     result = {"success": True, "error": "", "positions": [], "balance": {}, "_debug": ""}
 
+    # 配置 Tesseract OCR 路径（easytrader 内部用 pytesseract 识别同花顺界面）
+    try:
+        import pytesseract
+        tesseract_exe = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+        if os.path.exists(tesseract_exe):
+            pytesseract.pytesseract.tesseract_cmd = tesseract_exe
+    except Exception:
+        pass
+
     # 读持仓
     try:
         raw_pos = user.position
