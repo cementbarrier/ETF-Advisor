@@ -34,7 +34,7 @@ from backend.config_manager import get_setting, set_setting, get_risk_params, DE
 from backend.data_fetcher import fetch_etf_daily
 from backend.factor_engine import run_factor_pipeline
 from backend.llm_decision import decide
-from backend.position_fetcher import get_account_snapshot, format_positions_for_prompt, format_balance_for_prompt
+from backend.position_fetcher import format_positions_for_prompt, format_balance_for_prompt
 
 try:
     from PIL import Image, ImageDraw
@@ -209,111 +209,66 @@ def _save_api_key(*_):
     else:
         status.config(text="请填写 API Key")
 
-
-def _read_positions_from_ths():
-    """先弹验证码对话框，关闭后自动读取同花顺持仓"""
-    btn_pos.config(state="disabled", text="读取中...")
-    from tkinter import messagebox
-    messagebox.showinfo(
-        "同花顺验证码",
-        "请手动完成同花顺的验证码输入\n\n完成后点击确定继续读取持仓",
-        parent=root,
-    )
-    _do_ths_read()
-
-
-def _do_ths_read():
-    """实际执行同花顺读取：弹出进度窗口，后台读取"""
-    popup = tk.Toplevel(root)
-    popup.title("读取持仓")
-    popup.geometry("340x140")
-    popup.resizable(False, False)
-    popup.transient(root)
-    popup.grab_set()
-
-    # 居中
-    popup.update_idletasks()
-    rx, ry = root.winfo_x(), root.winfo_y()
-    rw, rh = root.winfo_width(), root.winfo_height()
-    pw, ph = 340, 140
-    popup.geometry(f"+{rx + (rw - pw) // 2}+{ry + (rh - ph) // 2}")
-
-    frame = ttk.Frame(popup, padding=15)
-    frame.pack(fill="both", expand=True)
-
-    ttk.Label(frame, text="正在连接同花顺...").pack(pady=(0, 10))
-
-    bar = ttk.Progressbar(frame, mode="indeterminate", length=280)
-    bar.pack()
-    bar.start(15)
-
-    detail_var = tk.StringVar(value="连接中，如同花顺弹出验证码请手动输入...")
-    ttk.Label(frame, textvariable=detail_var, foreground="gray").pack(pady=(8, 0))
-
-    VERIFY_SECONDS = 10
-
-    def _countdown(remaining):
-        """主线程倒计时，与后台等待同步"""
-        if remaining <= 0:
-            detail_var.set("正在读取持仓与资金...")
-            return
-        detail_var.set(f"如同花顺弹出验证码，请在 {remaining} 秒内手动输入...")
-        popup.after(1000, lambda: _countdown(remaining - 1))
-
-    def _do():
-        result = get_account_snapshot(verify_pause=VERIFY_SECONDS)
-        root.after(0, lambda: _on_done(result, popup))
-
-    _countdown(VERIFY_SECONDS)
-    threading.Thread(target=_do, daemon=True).start()
-
-
-def _on_done(result: dict, popup: tk.Toplevel):
-    """读取完成，关闭弹窗并处理结果"""
-    popup.grab_release()
-    popup.destroy()
-    btn_pos.config(state="normal", text="从同花顺读取")
-
-    if not result.get("success"):
-        messagebox.showerror("读取失败", result.get("error", "未知错误"))
-        status.config(text="读取持仓失败")
+def _parse_clipboard_data():
+    """解析用户从同花顺复制的持仓表格数据，填入输入框并持久化"""
+    text = paste_text.get("1.0", "end-1c").strip()
+    if not text:
+        status.config(text="请先在同花顺中复制持仓数据，再粘贴到上方文本框中")
         return
 
-    positions = result.get("positions", [])
-    balance = result.get("balance", {})
+    lines = text.strip().split("\n")
+    if len(lines) < 2:
+        status.config(text="数据格式不正确：至少需要表头和数据行")
+        return
 
-    # 填入持仓
-    if positions:
-        _fill_positions(positions)
+    # 解析表头确定列索引
+    header = lines[0].strip().split("\t")
+    try:
+        col_code = header.index("证券代码")
+        col_name = header.index("证券名称")
+        col_qty = header.index("股票余额")
+        col_cost = header.index("成本价")
+    except ValueError:
+        status.config(text="未找到必要列（证券代码/证券名称/股票余额/成本价），请确认复制完整表格")
+        return
 
-    # 显示资金
-    if balance:
-        avail = balance.get("available", 0)
-        total = balance.get("total_asset", 0)
-        bal_var.set(f"{avail:.2f}" if avail else "")
-        total_var.set(f"{total:.2f}" if total else "")
+    # 解析数据行
+    parsed = []
+    errors = []
+    for i, line in enumerate(lines[1:], 1):
+        cells = line.strip().split("\t")
+        if len(cells) <= max(col_code, col_qty, col_cost):
+            continue
+        try:
+            code = cells[col_code].strip()
+            name = cells[col_name].strip()
+            qty = int(float(cells[col_qty].strip()))
+            cost = float(cells[col_cost].strip())
+            if not code:
+                continue
+            parsed.append({"code": code, "name": name, "qty": qty, "cost": cost})
+        except (ValueError, IndexError) as e:
+            errors.append(f"第{i}行: {e}")
 
-        parts = []
-        if avail:
-            parts.append(f"可用资金 {avail:.2f}")
-        if total:
-            parts.append(f"总资产 {total:.2f}")
-        msg = "、".join(parts)
-        if positions:
-            status.config(text=f"已读取 {len(positions)} 条持仓 | {msg}")
-        else:
-            status.config(text=f"空仓 | {msg}")
-            messagebox.showinfo("读取结果", f"未持有任何仓位。\n{msg}")
-    else:
-        if positions:
-            status.config(text=f"已读取 {len(positions)} 条持仓")
-        else:
-            messagebox.showinfo("提示", "未读取到任何持仓数据。\n请确认同花顺账户中确实持有股票/基金。")
-            status.config(text="未读取到持仓，请手动输入")
+    if not parsed:
+        status.config(text="未能解析到有效持仓数据")
+        return
+
+    # 填入 GUI 输入框
+    _fill_positions(parsed)
+
+    # 持久化
+    _save_positions()
+
+    msg = f"已解析 {len(parsed)} 条持仓"
+    if errors:
+        msg += f"，{len(errors)} 条异常"
+    status.config(text=msg)
+
 
 
 def _fill_positions(positions: list):
-    """将持仓数据填入 GUI 输入框"""
+    """将持仓数据填入 GUI 输入框，并持久化"""
     for row_vars in pos_rows:
         for var in row_vars:
             var.set("")
@@ -324,7 +279,65 @@ def _fill_positions(positions: list):
             pos_rows[i][1].set(str(p.get("cost", "")))
             pos_rows[i][2].set(str(int(p.get("qty", 0))))
 
+    _save_positions()
     status.config(text=f"已读取 {len(positions)} 条持仓")
+
+
+def _get_all_positions() -> list[dict]:
+    """从所有非空输入行收集持仓数据（含名称）"""
+    positions = []
+    for row_vars in pos_rows:
+        code = row_vars[0].get().strip()
+        if not code:
+            continue
+        try:
+            cost = float(row_vars[1].get().strip() or 0)
+            qty = int(float(row_vars[2].get().strip() or 0))
+        except ValueError:
+            continue
+        if qty <= 0:
+            continue
+        positions.append({"code": code, "cost": cost, "qty": qty, "name": ""})
+    return positions
+
+
+def _save_positions():
+    """持久化当前持仓到配置文件"""
+    positions = _get_all_positions()
+    set_setting("manual_positions", positions)
+    try:
+        avail = float(bal_var.get().strip()) if bal_var.get().strip() else None
+    except ValueError:
+        avail = None
+    try:
+        total = float(total_var.get().strip()) if total_var.get().strip() else None
+    except ValueError:
+        total = None
+    balance = {}
+    if avail is not None:
+        balance["available"] = avail
+    if total is not None:
+        balance["total_asset"] = total
+    set_setting("manual_balance", balance)
+
+
+def _load_positions():
+    """从配置文件恢复持仓到 GUI"""
+    positions = get_setting("manual_positions", [])
+    if positions:
+        for i, p in enumerate(positions[:4]):
+            if i < len(pos_rows):
+                pos_rows[i][0].set(p.get("code", ""))
+                pos_rows[i][1].set(str(p.get("cost", "")))
+                pos_rows[i][2].set(str(int(p.get("qty", 0))))
+    balance = get_setting("manual_balance", {})
+    if balance:
+        avail = balance.get("available")
+        total = balance.get("total_asset")
+        if avail is not None:
+            bal_var.set(str(avail))
+        if total is not None:
+            total_var.set(str(total))
 
 
 def _get_manual_account() -> tuple[list[dict], dict]:
@@ -395,28 +408,10 @@ def _run_analysis():
         if use_positions:
             positions, account_balance = _get_manual_account()
             if not positions:
-                _log("[账户] 尝试从同花顺自动读取...")
-                result = get_account_snapshot()
-                if result.get("success"):
-                    positions = result.get("positions", [])
-                    account_balance = result.get("balance", {})
-                else:
-                    _log(f"[账户] 读取失败: {result.get('error', '')}")
-                # 输出诊断信息
-                debug_info = result.get("_debug", "")
-                if debug_info:
-                    _log(f"[诊断] {debug_info}")
-                if not positions and debug_info:
-                    _log("[诊断] 持仓解析为空，原始数据存在但未能匹配")
-            if positions:
-                codes = []
-                for p in positions:
-                    if isinstance(p, dict):
-                        c = p.get("code") or p.get("证券代码") or p.get("stock_code") or str(p)
-                        codes.append(str(c)[:20])
-                _log(f"[持仓] 共 {len(positions)} 条: {', '.join(codes)}")
+                _log("[持仓] 空仓（请在持仓面板粘贴同花顺数据后重试）")
             else:
-                _log("[持仓] 空仓")
+                codes = [str(p.get("code", "")) for p in positions if isinstance(p, dict)]
+                _log(f"[持仓] 共 {len(positions)} 条: {', '.join(codes)}")
             if account_balance:
                 avail = account_balance.get("available")
                 total = account_balance.get("total_asset")
@@ -570,6 +565,8 @@ def _clear_positions():
     for row_vars in pos_rows:
         for var in row_vars:
             var.set("")
+    paste_text.delete("1.0", "end")
+    _save_positions()
     status.config(text="持仓已清空")
 
 
@@ -986,13 +983,25 @@ pos_var = tk.StringVar(value="1")
 pos_cb = ttk.Checkbutton(pos_bar, text="纳入决策", variable=pos_var, onvalue="1", offvalue="0")
 pos_cb.pack(side="left")
 
-btn_pos = ttk.Button(pos_bar, text="从同花顺读取", command=_read_positions_from_ths)
-btn_pos.pack(side="left", padx=(10, 0))
-
 btn_clear = ttk.Button(pos_bar, text="清空", command=_clear_positions, width=5)
-btn_clear.pack(side="left", padx=(5, 0))
+btn_clear.pack(side="left", padx=(10, 0))
 
-ttk.Label(pos_bar, text="（或手动输入下方表格）", foreground="gray").pack(side="left", padx=(10, 0))
+ttk.Label(pos_bar, text="（或在下方粘贴同花顺持仓数据）", foreground="gray").pack(side="left", padx=(10, 0))
+
+# 粘贴区
+paste_frame = ttk.Frame(pos_frame)
+paste_frame.pack(fill="x", pady=(6, 0))
+paste_text = tk.Text(paste_frame, height=4, width=60, font=("Consolas", 9), wrap="none")
+paste_text.pack(side="left", fill="x", expand=True)
+paste_scroll = ttk.Scrollbar(paste_frame, command=paste_text.yview)
+paste_scroll.pack(side="right", fill="y")
+paste_text.configure(yscrollcommand=paste_scroll.set)
+
+paste_bar = ttk.Frame(pos_frame)
+paste_bar.pack(fill="x", pady=(4, 0))
+btn_parse = ttk.Button(paste_bar, text="解析持仓", command=_parse_clipboard_data)
+btn_parse.pack(side="left")
+ttk.Label(paste_bar, text="从同花顺复制持仓表格 → 粘贴到上方文本框 → 点击解析", foreground="gray").pack(side="left", padx=(8, 0))
 
 # 持仓表格头
 col_frame = ttk.Frame(pos_frame)
@@ -1032,6 +1041,19 @@ _log.widget = output
 status_text = "API Key 已就绪" if get_setting("llm_api_key", "") else "请填写 API Key"
 status = ttk.Label(root, text=status_text, relief="sunken", anchor="w", padding=(5, 2))
 status.pack(fill="x", side="bottom")
+
+# 启动时恢复上次保存的持仓
+_load_positions()
+
+# 手动修改持仓/资金输入框时自动保存
+def _on_pos_change(*_):
+    _save_positions()
+
+for row_vars in pos_rows:
+    for var in row_vars:
+        var.trace_add("write", _on_pos_change)
+bal_var.trace_add("write", _on_pos_change)
+total_var.trace_add("write", _on_pos_change)
 
 if __name__ == "__main__":
     # 单实例检测：仿 BiliDigest，禁止多开
