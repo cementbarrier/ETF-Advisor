@@ -84,12 +84,29 @@ def get_positions_from_ths() -> dict:
     if raw is None or (hasattr(raw, "empty") and raw.empty):
         return {"success": True, "data": [], "error": ""}
 
+    import logging as _logging
+    _log3 = _logging.getLogger("etf_trader")
+    _log3.debug(f"[position] type={type(raw).__name__} empty={hasattr(raw, 'empty') and raw.empty if hasattr(raw, 'empty') else 'N/A'}")
+
     positions = []
     try:
         import pandas as pd
         if isinstance(raw, pd.DataFrame):
+            # 调试：输出 DataFrame 列名和行数
+            try:
+                import logging
+                _log = logging.getLogger("etf_trader")
+                _log.debug(f"[position] DataFrame columns: {list(raw.columns)} rows={len(raw)}")
+            except Exception:
+                pass
             for _, row in raw.iterrows():
                 code = str(row.get("证券代码", "")).strip()
+                if not code:
+                    for alt_col in ["代码", "stock_code", "code", "证券代码", "标的代码"]:
+                        if alt_col in row.index:
+                            code = str(row.get(alt_col, "")).strip()
+                            if code:
+                                break
                 if not code:
                     continue
                 positions.append({
@@ -154,9 +171,26 @@ def get_account_snapshot() -> dict:
         raw_pos = user.position
         if raw_pos is not None and not (hasattr(raw_pos, "empty") and raw_pos.empty):
             import pandas as pd
+            import logging as _logging
+            _log2 = _logging.getLogger("etf_trader")
+            _log2.debug(f"[position] type={type(raw_pos).__name__} empty={hasattr(raw_pos, 'empty') and raw_pos.empty if hasattr(raw_pos, 'empty') else 'N/A'}")
             if isinstance(raw_pos, pd.DataFrame):
+                # 调试：输出 DataFrame 列名和行数
+                try:
+                    import logging
+                    _log = logging.getLogger("etf_trader")
+                    _log.debug(f"[position] DataFrame columns: {list(raw_pos.columns)} rows={len(raw_pos)}")
+                except Exception:
+                    pass
                 for _, row in raw_pos.iterrows():
                     code = str(row.get("证券代码", "")).strip()
+                    if not code:
+                        # 尝试其他可能的列名
+                        for alt_col in ["代码", "stock_code", "code", "证券代码", "标的代码"]:
+                            if alt_col in row.index:
+                                code = str(row.get(alt_col, "")).strip()
+                                if code:
+                                    break
                     if not code:
                         continue
                     result["positions"].append({

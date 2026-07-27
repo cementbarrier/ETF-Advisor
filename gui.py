@@ -366,7 +366,7 @@ def _run_analysis():
         account_balance = {}
         if use_positions:
             positions, account_balance = _get_manual_account()
-            if not positions and not account_balance:
+            if not positions:
                 _log("[账户] 尝试从同花顺自动读取...")
                 result = get_account_snapshot()
                 if result.get("success"):
