@@ -192,6 +192,15 @@ def _do_log(msg: str):
         _log.widget.configure(state="disabled")
 
 
+def _show_verify_dialog(event):
+    """在主线程弹出验证码提示框，用户关闭后 set event"""
+    from tkinter import messagebox
+    messagebox.showinfo("同花顺验证码",
+        "请手动完成同花顺的验证码输入\n\n完成后点击确定继续读取持仓",
+        parent=root)
+    event.set()
+
+
 def _save_api_key(*_):
     key = api_var.get().strip()
     if key:
@@ -367,6 +376,12 @@ def _run_analysis():
         if use_positions:
             positions, account_balance = _get_manual_account()
             if not positions:
+                # 弹窗等待用户手动完成验证码
+                import threading as _th
+                _log("[账户] 等待同花顺验证码，请在弹窗中输入后点确定...")
+                _v = _th.Event()
+                root.after(0, lambda: (_show_verify_dialog(_v)))
+                _v.wait(timeout=60)
                 _log("[账户] 尝试从同花顺自动读取...")
                 result = get_account_snapshot()
                 if result.get("success"):
